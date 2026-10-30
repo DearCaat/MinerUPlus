@@ -58,7 +58,11 @@ def find(path=None):
         return Path(path)
     if os.environ.get(ENV):
         return Path(os.environ[ENV])
-    return Path.cwd() / DEFAULT_NAME
+    here = Path.cwd() / DEFAULT_NAME
+    if here.is_file():
+        return here
+    user = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "mineru_plus" / "config.json"
+    return user if user.is_file() else here
 
 
 def load(path=None):
@@ -66,8 +70,9 @@ def load(path=None):
     global _loaded
     p = find(path)
     if not p.is_file():
-        raise ConfigError(f"config file not found: {p} (pass --config PATH, set {ENV}, or create {DEFAULT_NAME} "
-                          "in the working directory; config.example.json shows the format)")
+        raise ConfigError(f"config file not found: {p} (pass --config PATH, set {ENV}, create {DEFAULT_NAME} "
+                          "in the working directory or ~/.config/mineru_plus/config.json; config.example.json shows "
+                          "the format)")
     try:
         doc = json.loads(p.read_text(encoding="utf-8"))
     except ValueError as e:

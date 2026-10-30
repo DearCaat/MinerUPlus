@@ -295,7 +295,8 @@ Copy `config.example.json` to `mineru_plus.json` and fill in your services:
 ```
 
 Credentials never go into the file: `api_key_env` names the environment variable that holds the key. The file is
-found via `--config PATH`, else `$MINERU_PLUS_CONFIG`, else `./mineru_plus.json`. A run without a second reader
+found via `--config PATH`, else `$MINERU_PLUS_CONFIG`, else `./mineru_plus.json`, else
+`~/.config/mineru_plus/config.json`. A run without a second reader
 still completes, and its report says the characters were not checked.
 
 ## Usage

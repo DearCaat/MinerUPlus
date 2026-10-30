@@ -388,3 +388,25 @@ class ConfigTest(Base):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class UserConfig(unittest.TestCase):
+    def test_user_level_config_is_found(self):
+        import os, tempfile
+        from pathlib import Path
+        from mineru_plus import config
+        with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as cwd:
+            user = Path(home) / "mineru_plus" / "config.json"
+            user.parent.mkdir(parents=True)
+            user.write_text("{}")
+            old = (os.getcwd(), os.environ.pop(config.ENV, None), os.environ.get("XDG_CONFIG_HOME"))
+            try:
+                os.chdir(cwd); os.environ["XDG_CONFIG_HOME"] = home
+                self.assertEqual(config.find(), user)
+                (Path(cwd) / config.DEFAULT_NAME).write_text("{}")
+                self.assertEqual(config.find(), Path(cwd) / config.DEFAULT_NAME)
+            finally:
+                os.chdir(old[0])
+                if old[1] is not None: os.environ[config.ENV] = old[1]
+                if old[2] is None: os.environ.pop("XDG_CONFIG_HOME", None)
+                else: os.environ["XDG_CONFIG_HOME"] = old[2]

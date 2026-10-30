@@ -233,7 +233,7 @@ MinerUPlus 不是识别模型，它调用读取器（MinerU），再核对读取
 }
 ```
 
-配置文件里不写密钥：`api_key_env` 填的是存放密钥的环境变量名。查找顺序：`--config PATH`，其次 `$MINERU_PLUS_CONFIG`，最后是当前目录下的 `./mineru_plus.json`。没配第二读取器也能跑完，报告会写明字符没有核对。
+配置文件里不写密钥：`api_key_env` 填的是存放密钥的环境变量名。查找顺序：`--config PATH`，其次 `$MINERU_PLUS_CONFIG`，再次是当前目录下的 `./mineru_plus.json`，最后是 `~/.config/mineru_plus/config.json`。没配第二读取器也能跑完，报告会写明字符没有核对。
 
 ## 用法
 
