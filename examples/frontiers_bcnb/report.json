@@ -1,9 +1,9 @@
 {
  "tool": "mineru_plus",
- "version": "0.5.5",
+ "version": "0.5.6",
  "input": "frontiers_bcnb.pdf",
- "time": "2026-10-30 00:16:23",
- "wall_s": 15.1,
+ "time": "2026-10-30 02:39:52",
+ "wall_s": 34.0,
  "scope": {
   "pages": 11,
   "pages_without_text_layer": [],
@@ -21,19 +21,19 @@
   }
  },
  "readers": {
-  "mineru": {
-   "reader": "mineru",
-   "tier": "advanced",
-   "route": "tool gateway",
-   "task_id": "job_8e506af077df8459d8eb0f31",
-   "latency_s": 17.098
-  },
   "oxr": {
    "reader": "oxr",
    "route": "tool gateway (local deployment)",
    "pages": 11,
    "processing_time_ms": 70459,
    "latency_s": 68.86
+  },
+  "mineru": {
+   "reader": "mineru",
+   "tier": "advanced",
+   "route": "tool gateway",
+   "task_id": "job_8e506af077df8459d8eb0f31",
+   "latency_s": 17.098
   }
  },
  "figures": {
@@ -45,18 +45,19 @@
  },
  "checks": {
   "dropped": {
-   "printed": 9,
-   "printed, not placed": 7,
-   "written": 2,
-   "summary": "9 places where the text layer has characters the primary lacks: jev reads the layer's form on the page at 9 (2 written, 0 of them inline formulas the primary misread, retyped from the layer), not at 0 (the layer is wrong there), 0 undecided"
+   "printed": 7,
+   "formulas retyped from the layer": 3,
+   "in a formula already retyped": 2,
+   "written": 5,
+   "summary": "7 places where the text layer has characters the primary lacks: jev reads the layer's form on the page at 7 (5 written, 3 of them inline formulas the primary misread, retyped from the layer), not at 0 (the layer is wrong there), 0 undecided"
   },
   "reflow": {
-   "new": 2,
-   "next block starts a new sentence": 2,
+   "new": 3,
+   "next block starts a new sentence": 3,
    "continues": 8,
    "joined": 8,
    "floats moved": 1,
-   "summary": "10 paragraphs end mid-sentence before the next text block: 8 joined with their continuation (1 with figures, tables or footnotes moved after the paragraph); 2 not continued by the next block (2 of them because it starts a new sentence: a heading or author line typed as text), 0 undecided; 0 open issues"
+   "summary": "11 paragraphs end mid-sentence before the next text block: 8 joined with their continuation (1 with figures, tables or footnotes moved after the paragraph); 3 not continued by the next block (3 of them because it starts a new sentence: a heading or author line typed as text), 0 undecided; 0 open issues"
   },
   "tables": {
    "tables": 2,
@@ -99,17 +100,17 @@
     "primary was wrong": 3
    },
    "characters_verdicts": {
-    "oxr": 11,
-    "primary": 24,
-    "neither": 1
+    "oxr": 10,
+    "undecided": 2,
+    "primary": 24
    },
-   "edits_written": 27,
+   "edits_written": 29,
    "left_open": 1,
    "acceptance": {
     "passed": true,
-    "edits": 27,
-    "tokens_removed": 14,
-    "tokens_added": 20,
+    "edits": 29,
+    "tokens_removed": 44,
+    "tokens_added": 25,
     "unexplained_change": {}
    },
    "substitutions_most_repeated": [
@@ -122,8 +123,8 @@
     "'η'->'n' x1",
     "''->'n' x1"
    ],
-   "summary": "8806/8903 primary tokens agree with OXR; 27 corrections written (3 line-break spellings), 1 left open; acceptance passed; 0 of the open ones settled by later steps, 1 remain open",
-   "settled_by_later_steps": 0
+   "summary": "8806/8903 primary tokens agree with OXR; 29 corrections written (3 line-break spellings), 2 left open; acceptance passed; 0 of 7 passages for the page judges had no crop jev found to show them whole (not judged, open); 1 of the open ones settled by later steps, 1 remain open",
+   "settled_by_later_steps": 1
   },
   "tables_without_layer": {
    "tables": 0,
@@ -137,12 +138,12 @@
    "summary": "0/0 display equations equal OXR's LaTeX after canonical spelling; of the rest 0 print the letters and digits of the text layer in their box (characters confirmed, not the layout); 0 open"
   },
   "coverage": {
-   "missing_chars": 5,
+   "missing_chars": 1,
    "layer_words": 6784,
    "written_as_ascii": 5,
    "ascii_−": 4,
    "ascii_–": 1,
-   "summary": "5 text-layer characters missing from their block (0 repeated on many pages counted per page), 0 layer words in no block, of 6784 layer words; 5 dashes or middle dots written as ASCII look-alikes (line-break hyphens, invisible characters, figure-internal text and repaired characters excluded)"
+   "summary": "1 text-layer characters missing from their block (0 repeated on many pages counted per page), 0 layer words in no block, of 6784 layer words; 5 dashes or middle dots written as ASCII look-alikes (line-break hyphens, invisible characters, figure-internal text and repaired characters excluded)"
   },
   "margins": {
    "header": 25,
@@ -155,8 +156,8 @@
    "summary": "45 page headers, footers, page numbers and side notes the reader left out of its markdown written to the closing section; 20 equal the text layer, 0 differ (open issues), 0 on pages without a text layer"
   },
   "formula_spacing": {
-   "formulas": 28,
-   "summary": "28 formulas respelled without the spaces LaTeX ignores ('0 . 0 1 5' as '0.015', '\\mathrm { A U C }' as '\\mathrm{AUC}')"
+   "formulas": 25,
+   "summary": "25 formulas respelled without the spaces LaTeX ignores ('0 . 0 1 5' as '0.015', '\\mathrm { A U C }' as '\\mathrm{AUC}')"
   },
   "sections": {
    "sections": 30,
@@ -188,6 +189,7 @@
   "character check recall (10-28, 216 planted text-layer errors on 18 pages of 9 papers)": "in compared text 191 surfaced as disagreements but 3; jev chose the printed side for 182, 0 wrong; headers, footers, page numbers, equations not compared (12). Only errors on the layer side were planted, so this does not measure pages that print a typo",
   "character judge (10-28, 106 items: 34 printed typos with an ordinary layer, 12 real, 60 planted layer errors)": "Gemini on numbered sheets of tight crops, both option orders: 0 wrong among decided; undecided 9/34, 4/12, 5/60 (undecided items are open issues with their crop). jev and deepseek-flash chose the corrected spelling of printed typos in 25-40% of decided cases and are not used for characters",
   "jev first for characters (10-29, 31 documents, 325 character items)": "jev asked per reading whether the crop prints exactly it decided 104; where Gemini (0.3.0) had decided the same item, 84 of 86 agree; the 2 others are printed spellings jev took for the common one ('Interpetation', 'biomedcentral'), so a letters-only difference jev settles against the text layer goes to Gemini",
+  "crops for the character judges (10-30, 396 passages of 37 papers)": "each crop is checked by jev to show the two words before, the disputed part and the two words after, whole, before any judge sees it; 380 passed (363 at once, 17 after widening or on the side in the same block); the 16 that did not were inspected: 8 symbols the page does not print or text in figures and logos, 3 with their context in another block, 3 crops cut or misplaced, 2 crops that do show the passage (jev wrong). Of 26 crops passed that an earlier, stricter check had refused, 25 show the passage, 1 shows the same words in the next reference entry",
   "second reader (10-29, 203 planted errors on 9 papers)": "OXR found 187, MiniCPM-OCR 186, both together 188: one second reader is enough; jev alone on lines (no second reader) rejected 36% of correct lines, so one is needed",
   "dropped content (10-29, 9 papers)": "jev on red-box crops 'prints exactly «layer words»': 101 findings labelled on the page, 95 decided, 3 wrong; written only where the primary's own characters around place it (49 written, checked on crops; one wrong, a fraction's denominator written into the next line, led to the same-line rule)",
   "inline formulas (10-29, 31 documents)": "MinerU reads inline $...$ from the image even on born-digital pages: 30 misread formulas ('pm' for 'µm', 'ANN' for 'ANC', 'M×ED' for 'MIXED', 'I56' for '156', 'X^2' for a printed 'χ2') retyped from the layer with raised and lowered glyphs as <sup>/<sub>, only where every difference inside is a printed finding; doubtful ones checked on the page, all right. Stacked scripts, fractions and roots are not retyped",
@@ -200,7 +202,7 @@
   "omissions (10-28, same 31 documents)": "10 runs the text layer and OXR both have between the same three neighbours on each side and the primary dropped ('vs', compound hyphens, a period, an em dash); requiring only the two anchors let one wrong run in on a page whose layer runs in another order",
   "text-layer coverage (10-28, 9 papers, 180 findings checked by hand)": "about two thirds are content the primary dropped (journal names in footers, citation superscripts, a rotated table caption, 'vs', brackets inside formulas); the rest are pages whose layer is wrong (font maps such as '0:05' for 0.05, radical glyphs), which coverage cannot tell apart"
  },
- "open_issues": 8,
+ "open_issues": 1,
  "unchecked": [
   "page headers, footers and page numbers: checked against the text layer only (coverage); a broken layer there is not caught (OXR output has no headers or footers)",
   "figure transcriptions beyond the printed labels (figures.json): the reader's estimate"

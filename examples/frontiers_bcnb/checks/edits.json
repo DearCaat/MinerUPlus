@@ -1,13 +1,5 @@
 [
  {
-  "id": "d0003",
-  "page": 1,
-  "route": "characters",
-  "by": "gemini page",
-  "old": "\\rho =",
-  "new": "(p="
- },
- {
   "id": "d0002",
   "page": 1,
   "route": "characters",
@@ -59,7 +51,7 @@
   "id": "d0030",
   "page": 6,
   "route": "characters",
-  "by": "gemini page",
+  "by": "jev (exactly printed)",
   "old": "7",
   "new": "1"
  },
@@ -110,6 +102,30 @@
   "by": "jev spelling",
   "old": "twosided",
   "new": "two-sided"
+ },
+ {
+  "id": "r1.50.9",
+  "page": 1,
+  "route": "dropped (formula retyped)",
+  "by": "jev",
+  "old": "$\\langle \\rho = 0 . 0 1 2 \\rangle$",
+  "new": "(p = 0.012)."
+ },
+ {
+  "id": "r1.50.5",
+  "page": 1,
+  "route": "dropped (formula retyped)",
+  "by": "jev",
+  "old": "$\\langle p   =   0 . 0 1 0 \\rangle$",
+  "new": "(p = 0.010)"
+ },
+ {
+  "id": "r1.50.1",
+  "page": 1,
+  "route": "dropped (formula retyped)",
+  "by": "jev",
+  "old": "$\\langle (p  =   0 . 0 1 5 \\rangle$",
+  "new": "(p = 0.015)"
  },
  {
   "id": "r5.5.1",

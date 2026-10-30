@@ -83,20 +83,14 @@ EXACT_INSTR = ("The image is a strip cut from a printed page. Compare the quoted
                "typing errors; judge what is printed, do not correct it.")
 
 
-def _jev_exact(pdf, items, work):
+def _jev_exact(items, placed, work):
     """jev first (10-29: judgements prefer jev): per reading, 'does the crop print exactly X?' in both option
-    orders, on crops the text layer places. Decided when one reading gets yes and the other no; the rest goes to
-    Gemini. 10-29, 106 labelled items: 74 decided, 1 wrong; asking jev to choose between the two readings instead
+    orders, on the crops gemini.place() checked. Decided when one reading gets yes and the other no; the rest goes
+    to Gemini. 10-29, 106 labelled items: 74 decided, 1 wrong; asking jev to choose between the two readings instead
     picked the correctly spelled one where the page prints a typo (25-40% wrong)."""
-    work = Path(work); (work / "crops").mkdir(parents=True, exist_ok=True)
-    doc = pymupdf.open(pdf)
-    qs, crops = [], {}
+    qs = []
     for it in items:
-        path, how = gemini._crop(doc, it["page"], it["bbox"], it["toks"], work / "crops" / f"{it['id']}.png", it.get("pos"))
-        if how != "text layer":
-            continue                       # the passage may not be in the crop: Gemini places it with its fallbacks
-        crops[it["id"]] = path
-        img = "data:image/png;base64," + base64.b64encode(open(path, "rb").read()).decode()
+        img = "data:image/png;base64," + base64.b64encode(open(placed[it["id"]]["path"], "rb").read()).decode()
         for side in ("primary", "oxr"):
             t = it[side]
             qs.append({"id": f"{it['id']}|{side}", "state": f"Quoted text: «{t}»", "instructions": EXACT_INSTR,
@@ -110,7 +104,7 @@ def _jev_exact(pdf, items, work):
             out[it["id"]] = "primary"
         elif a == "no" and b == "yes":
             out[it["id"]] = "oxr"
-    return out, crops
+    return out
 
 
 def _drops_letters(s):
@@ -193,7 +187,10 @@ def settle(pdf, subs, work):
                                 "right": [t for t in s["right"] if not PURE_MARKUP.fullmatch(t)][:3]}})
     ans = jev.ask(spell_q, work, "spelling")
     bys = {}
-    jans, jcrops = _jev_exact(pdf, char_q, work / "jev_exact")
+    # one crop per passage, checked by jev to show the passage whole; a passage no crop shows is not judged
+    placed = gemini.place(pdf, char_q, work / "crops")
+    shown = [q for q in char_q if placed[q["id"]]["checked"]]
+    jans = _jev_exact(shown, placed, work / "jev_exact")
     # a spelling difference (letters only) that jev settles against the text layer goes to Gemini: jev took the
     # common spelling for the print (10-29: 'Interpetation' printed, 'biomedcentral' printed); where the layer
     # holds neither reading or agrees, jev's verdict stands
@@ -204,9 +201,10 @@ def settle(pdf, subs, work):
             says = _layer_says(LY.page(doc, s["page"] - 1), s)
             if says and says != jans[k]:
                 del jans[k]
-    gans, crops, _ = gemini.judge(pdf, [q for q in char_q if q["id"] not in jans], work / "gemini")
-    for k, p in jcrops.items():
-        crops.setdefault(k, {"path": p, "placed_by": "text layer"})
+    gans, _ = gemini.judge(pdf, [q for q in shown if q["id"] not in jans], work / "gemini", placed)
+    for q in char_q:
+        if not placed[q["id"]]["checked"]:
+            ans[q["id"]] = "not judged: no crop shows the passage whole"
     for k in jans:
         bys[k] = "jev (exactly printed)"
     ans.update(jans)
@@ -234,6 +232,7 @@ def settle(pdf, subs, work):
             bys.pop(s["id"], None)
         if s["id"] in bys:
             s["by"] = bys[s["id"]]
-        if s["id"] in crops:
-            s["crop"], s["crop_placed_by"] = crops[s["id"]]["path"], crops[s["id"]]["placed_by"]
+        if s["id"] in placed:
+            s["crop"], s["crop_placed_by"] = placed[s["id"]]["path"], placed[s["id"]]["placed_by"]
+            s["crop_checked"] = placed[s["id"]]["checked"]
     return subs

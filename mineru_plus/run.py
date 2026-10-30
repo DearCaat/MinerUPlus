@@ -17,7 +17,7 @@ from .readers import mineru as MR, oxr as OX
 from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL, omissions as OM, two_readings as TR, resolve as RS, coverage as CV, tables as TB, equations as EQ
 from . import layer as LY, sections as SC, backends, config
 
-VERSION = "0.5.5"
+VERSION = "0.5.6"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
 TOKEN = re.compile(r"[A-Za-z0-9]+(?:[.,][0-9]+)*")
 WS = re.compile(r"\s+")
@@ -43,6 +43,13 @@ CALIBRATION = {   # tool-level measurements behind the checks; per-document numb
         "jev asked per reading whether the crop prints exactly it decided 104; where Gemini (0.3.0) had decided the same "
         "item, 84 of 86 agree; the 2 others are printed spellings jev took for the common one ('Interpetation', "
         "'biomedcentral'), so a letters-only difference jev settles against the text layer goes to Gemini",
+    "crops for the character judges (10-30, 396 passages of 37 papers)": "each crop is checked by jev to show the "
+        "two words before, the disputed part and the two words after, whole, before any judge sees it; 380 passed "
+        "(363 at once, 17 after widening or on the side in the same block); the 16 that did not were inspected: "
+        "8 symbols the page does not print or text in figures and logos, 3 with their context in another block, 3 crops "
+        "cut or misplaced, 2 crops that do show the passage (jev wrong). Of 26 "
+        "crops passed that an earlier, stricter check had refused, 25 show the passage, 1 shows the same words in the "
+        "next reference entry",
     "second reader (10-29, 203 planted errors on 9 papers)": "OXR found 187, MiniCPM-OCR 186, both together 188: one "
         "second reader is enough; jev alone on lines (no second reader) rejected 36% of correct lines, so one is needed",
     "dropped content (10-29, 9 papers)": "jev on red-box crops 'prints exactly «layer words»': 101 findings labelled on "
@@ -101,8 +108,11 @@ def _settled_later(md, subs, issues):
     for x in issues:
         s = by.get(x.get("id")) if x["kind"] == "disagreement" else None
         if s:
-            L, R = s["left"][-3:], s["right"][:3]
-            if has(L + s["oxr_toks"] + R) and not has(L + s["primary_toks"] + R):
+            # three neighbours on one side and one on the other: the step that settled it may have changed the
+            # other side's neighbours (10-30: a retyped formula ending '0.012).' before a new paragraph)
+            ctx = [(s["left"][-3:], s["right"][:1]), (s["left"][-1:], s["right"][:3])]
+            if any(has(L + s["oxr_toks"] + R) for L, R in ctx) and \
+                    not any(has(L + s["primary_toks"] + R) for L, R in ctx):
                 s["settled_later"] = True; n += 1
                 continue
         keep.append(x)
@@ -355,7 +365,10 @@ def _parse(pdf, out, src):
             "substitutions_most_repeated": [f"{g['layer']!r}->{g['oxr']!r} x{g['count']}" for g in groups[:8]],
             "summary": f"{stats['equal']}/{stats['tokens']} primary tokens agree with OXR; {len(edits)} corrections written "
                        f"({cnt(lambda s: s in lb and s.get('plan') == 'edit')} line-break spellings), {len(open_items)} left "
-                       f"open; acceptance {'passed' if acc['passed'] else 'FAILED'}"}
+                       f"open; acceptance {'passed' if acc['passed'] else 'FAILED'}; "
+                       f"{sum(1 for s in subs if s.get('crop_checked') is False)} of "
+                       f"{sum(1 for s in subs if 'crop_checked' in s)} passages for the page judges had no crop jev "
+                       f"found to show them whole (not judged, open)"}
         unchecked += ["page headers, footers and page numbers: checked against the text layer only (coverage); a "
                       "broken layer there is not caught (OXR output has no headers or footers)",
                       ]
@@ -400,7 +413,7 @@ def _parse(pdf, out, src):
         "wall_s": round(time.time() - t0, 1),
         "scope": {"pages": prof["n_pages"], "pages_without_text_layer": prof["pages_without_text_layer"],
                   "blocks_by_type": types},
-        "readers": {**metas, **{k: {"failed": v} for k, v in errs.items()}},
+        "readers": dict(sorted({**metas, **{k: {"failed": v} for k, v in errs.items()}}.items(), key=lambda kv: kv[0] != "mineru")),
         "figures": {"transcriptions": len(figs), "moved_out_of_text": sum(f["in_markdown"] for f in figs),
                     "tokens": sum(f["tokens"] for f in figs), "tokens_printed": sum(f["tokens_printed"] for f in figs),
                     "figures_without_text_layer": sum(f["text_layer_words_in_box"] == 0 for f in figs)},

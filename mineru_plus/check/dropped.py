@@ -33,6 +33,12 @@ def _norm_char(c):
     return [x for x in s if not x.isspace() and not "" <= x <= "" and not unicodedata.combining(x)]
 
 
+# accents over a letter print, in a text layer, as a spacing accent before it ('ˆak' for \hat{a}_k); read as nothing,
+# the layer's accent looked dropped and was written in front of the formula (10-30: 'the ˆ $\hat { y }$')
+ACCENT_CMDS = {"\\hat": "ˆ", "\\widehat": "ˆ", "\\tilde": "˜", "\\widetilde": "˜", "\\bar": "¯", "\\dot": "˙",
+               "\\ddot": "¨", "\\check": "ˇ", "\\breve": "˘", "\\acute": "´", "\\grave": "`"}
+
+
 def plain_map(raw):
     """the characters a block's markdown prints, each with the index of the raw character it comes from. Inside
     $...$: LaTeX commands as their symbols (or nothing), ^ _ { } ~ and spacing commands dropped. Outside: markdown
@@ -50,7 +56,7 @@ def plain_map(raw):
             nx = raw[i + 1]
             if nx.isalpha():
                 m = re.match(r"\\[A-Za-z]+", raw[i:])
-                sym = TR.LATEX.get(m.group(0))
+                sym = TR.LATEX.get(m.group(0)) or (ACCENT_CMDS.get(m.group(0)) if math else None)
                 if sym:
                     out += [(x, i) for x in _norm_char(sym)]
                 i += len(m.group(0)); continue
@@ -211,13 +217,29 @@ def locate(md, raw):
     if md.count(raw) > 1 or len(raw) < 100:
         return None
     head, tail = raw[:40], raw[-40:]
-    if md.count(head) != 1 or md.count(tail) != 1:
+    if md.count(head) == 1 and md.count(tail) == 1:
+        s = md.find(head); e = md.find(tail, s)
+        if e != -1:
+            cur = md[s:e + 40]
+            return cur if abs(len(cur) - len(raw)) < 0.1 * len(raw) else None
+    # an earlier route edited the block's first or last characters (10-30: 'ρ' corrected near the end of an abstract,
+    # and the block's dropped brackets went unwritten): a block of one line is the line of full.md that holds the
+    # stretches of it found once, starting or ending as the block does
+    if "\n" in raw:
         return None
-    s = md.find(head); e = md.find(tail, s)
-    if e == -1:
+    lines = set()
+    for i in range(0, len(raw) - 40, 20):
+        w = raw[i:i + 40]
+        if md.count(w) == 1:
+            k = md.find(w)
+            e = md.find("\n", k)
+            lines.add((md.rfind("\n", 0, k) + 1, len(md) if e == -1 else e))
+    if len(lines) != 1:
         return None
-    cur = md[s:e + 40]
-    return cur if abs(len(cur) - len(raw)) < 0.1 * len(raw) else None
+    s, e = lines.pop()
+    cur = md[s:e]
+    ok = (cur.startswith(raw[:10]) or cur.endswith(raw[-10:])) and abs(len(cur) - len(raw)) < 0.1 * len(raw)
+    return cur if ok and md.count(cur) == 1 else None
 
 
 def find(pdf_path, mdir, work, md=None):
@@ -292,6 +314,11 @@ def find(pdf_path, mdir, work, md=None):
                 # unique context: 6 matched characters on each side must exist (the change is placed inside one
                 # alignment, not at a block edge)
                 ctx_ok = (i1 >= 6 or j1 >= 6) and i1 > 0 and j1 > 0
+                # and on the line of the matched character before or after them (10-30: a summation limit 's' of the
+                # displayed equation below was in the layer after the paragraph's last word, and was written there)
+                same = lambda k: min(box.y1, lw[k][1].y1) - max(box.y0, lw[k][1].y0) > 0.5 * min(box.height, lw[k][1].height)
+                if ctx_ok and op == "delete" and not (same(L[i1 - 1][1]) or (i2 < len(L) and same(L[i2][1]))):
+                    ctx_ok = False
                 # dropped at the block start (an italic journal name, a footnote mark): placed before the block's
                 # first characters when at least 6 of them follow matched
                 nx = ops[n + 1] if n + 1 < len(ops) else None
@@ -352,7 +379,10 @@ def edit(raw, f):
     layer (_retype) where the formula is linear."""
     r = _edit_plain(raw, f)
     rt = f.get("retype")
-    if r is None and rt and f.get("retype_ok"):
+    # not where the retyped text would hold an accent: the layer has it as a glyph before its letter, and the text
+    # would print 'ˆA' where the formula prints Â (10-30, abx: 'Corr( ˆA<sup>(j)</sup>, ...'); a formula whose accent
+    # is the misreading is still retyped (conic: '\hat { M } o N u S A C' for 'MoNuSAC')
+    if r is None and rt and f.get("retype_ok") and not any(a in rt["text"] for a in ACCENT_CMDS.values()):
         s, e = rt["span"]
         if raw[s:e] == rt["old"]:
             r = raw[:s] + rt["text"] + raw[e:], rt["old"], rt["text"]
@@ -400,6 +430,22 @@ def _edit_plain(raw, f):
     return raw[:s] + ins + raw[e:], raw[max(0, s - 12):e + 12], raw[max(0, s - 12):s] + ins + raw[e:e + 12]
 
 
+def _doubled(layer, prim):
+    """the layer writes every letter twice in a row (overprinted text; digits and punctuation once), and with each
+    pair read once it is the primary's form"""
+    a = [c for x in layer for c in _norm_char(x)]
+    b = [c for x in prim for c in _norm_char(x)]
+    out, i, pairs = [], 0, 0
+    while i < len(a):
+        if a[i].isalpha():
+            if i + 1 >= len(a) or a[i + 1] != a[i]:
+                return False
+            out.append(a[i]); i += 2; pairs += 1
+        else:
+            out.append(a[i]); i += 1
+    return pairs >= 2 and out == b
+
+
 def apply(md, pages, found, second=None):
     """write the printed findings into full.md, right to left within a block, on the block as it now stands in
     full.md (the text find() compared); returns (md, edits, issues, counts).
@@ -419,6 +465,9 @@ def apply(md, pages, found, second=None):
         n[f["verdict"]] += 1
         if f["verdict"] == "not printed":
             continue                                   # the layer is wrong there
+        if f["verdict"] == "printed" and _doubled(f["layer_words"], f["prim"]):
+            n["layer prints each glyph twice"] += 1   # overprinted text (10-30, conic: '𝑚𝑚𝑅𝑅2,' for 'mR2,'); jev
+            continue                                    # reads the print, which is the primary's
         if f["verdict"] != "printed":
             issues.append({"kind": "text layer not in the parse", "why": f"jev {f['verdict']}", "page": f["page"],
                            "layer": f["layer_words"], "parse": f["prim"], "crop": f["crop"]}); continue
@@ -437,7 +486,12 @@ def apply(md, pages, found, second=None):
         new = raw
         done, spans = [], set()
         for f in sorted(fs, key=lambda f: -(f["raw_span"][0] if f["raw_span"] else f["raw_after"] or 0)):
-            if f.get("retype") and tuple(f["retype"]["span"]) in spans:
+            # a finding anchored inside a formula retyped already: the retyped text holds the layer's characters there
+            # (10-30: an opening bracket, anchored at the first character inside the formula, was inserted into the
+            # retyped text, '(p = 0.01 (0)')
+            anchor = f["raw_span"] or [x for x in (f["raw_after"], f.get("raw_next")) if x is not None]
+            if (f.get("retype") and tuple(f["retype"]["span"]) in spans) or \
+                    any(s0 <= a < e0 for s0, e0 in spans for a in anchor if a is not None):
                 n["in a formula already retyped"] += 1
                 continue
             changed = f["raw_span"] is not None

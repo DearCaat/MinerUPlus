@@ -112,6 +112,7 @@
   "verdict": "oxr",
   "crop": "crops/d0001.png",
   "crop_placed_by": "text layer",
+  "crop_checked": true,
   "plan": "edit",
   "written": true
  },
@@ -226,11 +227,12 @@
   "by": "gemini page",
   "primary_shown": "ρ",
   "oxr_shown": "(p",
-  "verdict": "oxr",
+  "verdict": "undecided",
   "crop": "crops/d0003.png",
   "crop_placed_by": "text layer",
-  "plan": "edit",
-  "written": true
+  "crop_checked": true,
+  "plan": "open: page reading not settled (undecided)",
+  "settled_later": true
  },
  {
   "kind": "markup",
@@ -961,7 +963,8 @@
   "oxr_shown": "mn",
   "verdict": "oxr",
   "crop": "crops/d0016.png",
-  "crop_placed_by": "text layer",
+  "crop_placed_by": "position in block",
+  "crop_checked": true,
   "plan": "edit",
   "written": true
  },
@@ -1738,12 +1741,13 @@
   "context": "; V , validation cohort ( n = [...] ) ; 1 - T , independent test",
   "id": "d0030",
   "route": "characters",
-  "by": "gemini page",
+  "by": "jev (exactly printed)",
   "primary_shown": "270",
   "oxr_shown": "210",
   "verdict": "oxr",
   "crop": "crops/d0030.png",
-  "crop_placed_by": "text layer",
+  "crop_placed_by": "position in block",
+  "crop_checked": true,
   "plan": "edit",
   "written": true
  },
@@ -1860,6 +1864,7 @@
   "verdict": "oxr",
   "crop": "crops/d0032.png",
   "crop_placed_by": "text layer",
+  "crop_checked": true,
   "plan": "edit",
   "written": true
  },
@@ -1921,6 +1926,7 @@
   "verdict": "primary",
   "crop": "crops/d0033.png",
   "crop_placed_by": "text layer",
+  "crop_checked": true,
   "plan": "keep"
  },
  {
@@ -2474,10 +2480,11 @@
   "by": "gemini page",
   "primary_shown": "Estained",
   "oxr_shown": "E-stained",
-  "verdict": "neither",
+  "verdict": "undecided",
   "crop": "crops/d0043.png",
   "crop_placed_by": "text layer",
-  "plan": "open: page reading not settled (neither)"
+  "crop_checked": true,
+  "plan": "open: page reading not settled (undecided)"
  },
  {
   "kind": "look-alike",

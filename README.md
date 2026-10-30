@@ -29,8 +29,8 @@ reader's untouched markdown next to the result, so you can compare them line by 
 | MinerU (advanced) | `V, validation cohort $( n = 2 7 0 ) ; 1 - T ,$ independent test cohort $( n = 2 7 8 ) ; A L N ,$` |
 | MinerUPlus | `V, validation cohort $( n = 210 ) ; I - T ,$ independent test cohort $( n = 218 ) ; A L N ,$` |
 
-- `270 → 210`: the second reader (OXR) disagreed, and the page judge read the crop.
-- `278 → 218`: the decision judge confirmed that the crop prints exactly `218`.
+- `270 → 210` and `278 → 218`: the second reader (OXR) disagreed, and the decision judge confirmed that the crop
+  prints exactly `210` and `218`.
 - `1 → I`: settled by the text layer.
 - The spacing inside the numbers was removed, so a search for `n = 210` now finds it.
 
@@ -40,42 +40,44 @@ reader's untouched markdown next to the result, so you can compare them line by 
 
 | | text |
 |---|---|
-| MinerU (advanced) | `density $\langle \rho   =   0 . 0 1 5 \rangle$ , circumference $\left( \rho   =   0.009 \right)$` |
-| MinerUPlus | `density $\langle (p = 0.015 \rangle$ , circumference $\left( p = 0.009 \right)$` |
+| MinerU (advanced) | `density $\langle \rho   =   0 . 0 1 5 \rangle$ , circumference $\left( \rho   =   0.009 \right)$ , circularity $\langle p   =   0 . 0 1 0 \rangle$ , and orientation $\langle \rho = 0 . 0 1 2 \rangle$` |
+| MinerUPlus | `density (p = 0.015) , circumference $\left( p = 0.009 \right)$ , circularity (p = 0.010) , and orientation (p = 0.012).` |
 
-`ρ → p` was fixed. The angle brackets are still wrong. The text layer prints `(p = 0.015)`, but MinerUPlus could not
-place that edit safely inside the formula, so it is left as an open issue with its crop for the calling agent
-([`issues.json`](examples/frontiers_bcnb/issues.json)).
+Several checks fixed this. `ρ → p` came from the page judge reading the crop and from the text layer. The text layer
+also had the brackets and the final period the reader dropped; the decision judge confirmed they are printed, and three
+of the formulas were retyped from the layer.
 
-**An item it does not decide.**
+**An item it leaves open.**
 
 ![page crop](examples/frontiers_bcnb/crops/d0043.png)
 
 MinerU read `Estained` and OXR read `E - stained`; the page prints `H&E-stained` across a line break. The crop shows
-only the second line, so the page judge chose neither reading. The item goes back to the caller as an open issue,
-with the crop.
+both lines. In this run the page judge gave different answers in the two option orders, so the item was not written.
+It goes back to the caller as an open issue, with the crop
+([`issues.json`](examples/frontiers_bcnb/issues.json)). In 7 of 9 runs of this paper the judge chose OXR's reading and
+`H&E-stained` was written.
 
 **The report** ([`report.md`](examples/frontiers_bcnb/report.md)) starts like this:
 
 ```
-# mineru_plus 0.5.5 — frontiers_bcnb.pdf
+# mineru_plus 0.5.6 — frontiers_bcnb.pdf
 
 11 pages; every page has a text layer.
-Readers: mineru, oxr.
+Readers: oxr, mineru.
 Figure transcriptions: 4 (figures.json), 4 moved out of full.md; 0/215 of their tokens are printed in the figure's ...
 
 ## Measured on this document
-- dropped: 9 places where the text layer has characters the primary lacks: jev reads the layer's form on the page ...
-- reflow: 10 paragraphs end mid-sentence before the next text block: 8 joined with their continuation (1 with figu ...
+- dropped: 7 places where the text layer has characters the primary lacks: jev reads the layer's form on the page ...
+- reflow: 11 paragraphs end mid-sentence before the next text block: 8 joined with their continuation (1 with figu ...
 - tables: 2 tables checked against the text layer cell by cell: 3 look-alike characters and 0 spaces between a cel ...
-- characters: 8806/8903 primary tokens agree with OXR; 27 corrections written (3 line-break spellings), 1 left ope ...
-- formula_spacing: 28 formulas respelled without the spaces LaTeX ignores ('0 . 0 1 5' as '0.015', '\mathrm { A U ...
+- characters: 8806/8903 primary tokens agree with OXR; 29 corrections written (3 line-break spellings), 2 left ope ...
+- formula_spacing: 25 formulas respelled without the spaces LaTeX ignores ('0 . 0 1 5' as '0.015', '\mathrm { A U ...
 ...
 ## Not checked
 - page headers, footers and page numbers: checked against the text layer only (coverage); a broken layer there is ...
 - figure transcriptions beyond the printed labels (figures.json): the reader's estimate
 
-## Open issues: 8 (issues.json)
+## Open issues: 1 (issues.json)
 ```
 
 The report goes on to list the backends of the run and the calibration of each check.
@@ -130,6 +132,11 @@ Design rules:
 - **Evidence before judges.** If the text layer decides a disagreement, no model is asked.
 - **Judges answer closed questions on the page image.** Every question is asked in both option orders, and an
   item counts as decided only when both orders agree.
+- **A judge only sees a crop that was checked.** Crops are placed from the text layer, and then the decision judge is
+  asked whether the crop shows the passage whole: the two words before it, the disputed part, and the two words
+  after it. A crop that fails is widened and asked again. If no crop passes, the item is not judged and goes back
+  as an open issue. On 396 passages of 37 papers, 380 crops passed; most of the 16 that did not had nothing to show
+  (a symbol the page does not print, text inside a figure).
 - **"Undecided" is a valid answer.** It goes back to the calling agent with a crop instead of being guessed.
 - **Report what was not checked.** Figure transcriptions beyond printed labels, and pages with no text layer, are
   listed in the report as unchecked.

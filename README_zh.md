@@ -22,8 +22,7 @@ agent 引用论文原文、抽样本量和 p 值、从图表建数据集时，�
 | MinerU（advanced） | `V, validation cohort $( n = 2 7 0 ) ; 1 - T ,$ independent test cohort $( n = 2 7 8 ) ; A L N ,$` |
 | MinerUPlus | `V, validation cohort $( n = 210 ) ; I - T ,$ independent test cohort $( n = 218 ) ; A L N ,$` |
 
-- `270 → 210`：第二读取器（OXR）的读法和 MinerU 不一致，由读页判定器看截图定下。
-- `278 → 218`：由判定器确认截图上印的正是 `218`。
+- `270 → 210`、`278 → 218`：第二读取器（OXR）的读法和 MinerU 不一致，判定器确认截图上印的正是 `210` 和 `218`。
 - `1 → I`：由文本层定下。
 - 数字里的空格也去掉了，现在搜 `n = 210` 能搜到。
 
@@ -33,38 +32,38 @@ agent 引用论文原文、抽样本量和 p 值、从图表建数据集时，�
 
 | | 文本 |
 |---|---|
-| MinerU（advanced） | `density $\langle \rho   =   0 . 0 1 5 \rangle$ , circumference $\left( \rho   =   0.009 \right)$` |
-| MinerUPlus | `density $\langle (p = 0.015 \rangle$ , circumference $\left( p = 0.009 \right)$` |
+| MinerU（advanced） | `density $\langle \rho   =   0 . 0 1 5 \rangle$ , circumference $\left( \rho   =   0.009 \right)$ , circularity $\langle p   =   0 . 0 1 0 \rangle$ , and orientation $\langle \rho = 0 . 0 1 2 \rangle$` |
+| MinerUPlus | `density (p = 0.015) , circumference $\left( p = 0.009 \right)$ , circularity (p = 0.010) , and orientation (p = 0.012).` |
 
-`ρ → p` 改对了。尖括号还是错的：文本层印的是 `(p = 0.015)`，但这处在公式内部，没法安全地写回去，所以作为未决问题附截图交给调用方（[`issues.json`](examples/frontiers_bcnb/issues.json)）。
+这处由几项核对一起改对。`ρ → p` 一部分来自读页判定器看截图，一部分来自文本层。读取器漏掉的括号和句末句号，文本层里有；判定器确认它们确实印在页面上，其中三个公式按文本层重写。
 
-**它定不了的地方。**
+**它留给调用方的地方。**
 
 ![页面截图](examples/frontiers_bcnb/crops/d0043.png)
 
-MinerU 读成 `Estained`，OXR 读成 `E - stained`。页面上印的是跨行的 `H&E-stained`，但截图只截到了第二行，读页判定器两种读法都没选。这一处作为未决问题附截图交还调用方。
+MinerU 读成 `Estained`，OXR 读成 `E - stained`，页面上印的是跨行的 `H&E-stained`。截图把两行都截进来了。这次运行里，读页判定器在两种选项顺序下给出的答案不一致，所以没有写回，这一处作为未决问题附截图交给调用方（[`issues.json`](examples/frontiers_bcnb/issues.json)）。这篇论文跑了 9 次，有 7 次判定器选了 OXR 的读法，写成了 `H&E-stained`。
 
 **报告**（[`report.md`](examples/frontiers_bcnb/report.md)）开头是这样的：
 
 ```
-# mineru_plus 0.5.5 — frontiers_bcnb.pdf
+# mineru_plus 0.5.6 — frontiers_bcnb.pdf
 
 11 pages; every page has a text layer.
-Readers: mineru, oxr.
+Readers: oxr, mineru.
 Figure transcriptions: 4 (figures.json), 4 moved out of full.md; 0/215 of their tokens are printed in the figure's ...
 
 ## Measured on this document
-- dropped: 9 places where the text layer has characters the primary lacks: jev reads the layer's form on the page ...
-- reflow: 10 paragraphs end mid-sentence before the next text block: 8 joined with their continuation (1 with figu ...
+- dropped: 7 places where the text layer has characters the primary lacks: jev reads the layer's form on the page ...
+- reflow: 11 paragraphs end mid-sentence before the next text block: 8 joined with their continuation (1 with figu ...
 - tables: 2 tables checked against the text layer cell by cell: 3 look-alike characters and 0 spaces between a cel ...
-- characters: 8806/8903 primary tokens agree with OXR; 27 corrections written (3 line-break spellings), 1 left ope ...
-- formula_spacing: 28 formulas respelled without the spaces LaTeX ignores ('0 . 0 1 5' as '0.015', '\mathrm { A U ...
+- characters: 8806/8903 primary tokens agree with OXR; 29 corrections written (3 line-break spellings), 2 left ope ...
+- formula_spacing: 25 formulas respelled without the spaces LaTeX ignores ('0 . 0 1 5' as '0.015', '\mathrm { A U ...
 ...
 ## Not checked
 - page headers, footers and page numbers: checked against the text layer only (coverage); a broken layer there is ...
 - figure transcriptions beyond the printed labels (figures.json): the reader's estimate
 
-## Open issues: 8 (issues.json)
+## Open issues: 1 (issues.json)
 ```
 
 报告后面还列出本次运行用的后端，以及每项核对的校准数据。
@@ -115,6 +114,7 @@ Figure transcriptions: 4 (figures.json), 4 moved out of full.md; 0/215 of their 
 设计原则：
 - **证据先于判定器**：文本层能定的，不问模型。
 - **判定器只答封闭题，而且看的是页面图像**：每题两种选项顺序各问一次，两次一致才算定下。
+- **判定器只看核过的截图**：截图位置由文本层定，然后先问判定器这张图是否完整显示了这段文字（前 2 个词、有争议的部分、后 2 个词）。不通过就扩大再问；没有一张通过，这一处就不判，作为未决问题交还。37 篇论文的 396 处里，380 张截图通过；没通过的 16 处大多本来就没东西可截（页面上不印的符号、图里的文字）。
 - **"定不了"是合法答案**：它附截图交还给调用方，不去猜。
 - **没查的也说**：图里文字以外的内容、没有文本层的页面，都写进报告的"未核对"一节。
 

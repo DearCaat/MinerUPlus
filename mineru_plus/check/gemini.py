@@ -29,39 +29,121 @@ def _letters(x):
     return re.sub(r"[^\w]", "", unicodedata.normalize("NFKC", x))
 
 
+def _lines(pg):
+    """the page's text-layer lines as rectangles (unrotated coordinates). Pieces of one printed line that the layer
+    keeps as separate lines (10-30: a line of a held-out paper set as several layer lines, the crop ending mid-line)
+    are joined: same baseline band, a gap no wider than a word space."""
+    ls = {}
+    for w in LY.words(pg):
+        k = (w[5], w[6])
+        ls[k] = ls[k] | pymupdf.Rect(w[:4]) if k in ls else pymupdf.Rect(w[:4])
+    out = []
+    for r in sorted(ls.values(), key=lambda r: (round(r.y1), r.x0)):
+        for i, o in enumerate(out):
+            same = min(r.y1, o.y1) - max(r.y0, o.y0) > 0.6 * min(r.height, o.height)
+            gap = max(r.x0 - o.x1, o.x0 - r.x1)
+            if same and gap < 0.6 * min(r.height, o.height):
+                out[i] = o | r
+                break
+        else:
+            out.append(pymupdf.Rect(r))
+    return out
+
+
 def _rect(pg, hit, block):
-    """the line of the hit and the next one (a word split at the line end continues there), across the block's
-    column so the passage is not cut at the sides"""
-    lh = hit.y1 - hit.y0
-    narrow = block is not None and block.width < 0.6 * pg.rect.width
-    x0, x1 = (block.x0 - 4, block.x1 + 4) if narrow else (hit.x0 - 160, hit.x1 + 160)
-    return pymupdf.Rect(x0, hit.y0 - 0.4 * lh, x1, hit.y1 + 1.4 * lh) & pg.rect
+    """the line of the hit with the line before and the line after, each line whole (10-30: a crop of 160 pt each
+    side of the hit cut 'AUROC' to 'ROC)' and 'H&E-' off a line end; with the hit line and the next one only, 'H&E-'
+    ending the line above was cut off and the judge could read neither reading). Lines are the text layer's; those
+    taken are the ones in the block's column (the hit's own extent where the block is unknown)."""
+    # a layer 'line' much taller than the hit is not a line of text (10-30: on pages set with math fonts some 'lines'
+    # span a paragraph, and the crop grew to half the page)
+    lines = [l for l in _lines(pg) if l.height <= 2 * hit.height]
+    vo = lambda r: min(r.y1, hit.y1) - max(r.y0, hit.y0)
+    own = [r for r in lines if vo(r) > 0.5 * min(r.height, hit.height) and r.x0 < hit.x1 and r.x1 > hit.x0]
+    base = pymupdf.Rect(hit)
+    for r in own:
+        base |= r
+    lh = min([r.height for r in own] or [hit.height]) or 8
+    x0, x1 = (block.x0, block.x1) if block is not None else (base.x0, base.x1)
+    lo, hi = base.y0 - 1.6 * lh, base.y1 + 1.6 * lh
+    r = pymupdf.Rect(base)
+    for l in lines:
+        if lo <= (l.y0 + l.y1) / 2 <= hi and l.x0 < x1 and l.x1 > x0:
+            r |= l
+    return pymupdf.Rect(r.x0 - 6, r.y0 - 0.4 * lh, r.x1 + 6, r.y1 + 0.4 * lh) & pg.rect
+
+
+def _image(pg, r, dpi):
+    """the page inside r (unrotated coordinates) as an upright PIL image: rotated pages are rendered through the
+    page's rotation, and text set sideways (rotated tables, margin notes) is turned to read left to right"""
+    from .table_layer import _upright
+    pix = pg.get_pixmap(dpi=dpi, clip=r * pg.rotation_matrix)
+    im = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+    rot = _upright(pg, r)
+    return im.rotate(rot, expand=True) if rot else im
+
+
+def _seq(text, words, start=0):
+    """end of the words found in order in text from start, or None"""
+    for w in words:
+        i = text.find(w, start)
+        if i < 0:
+            return None
+        start = i + len(w)
+    return start
+
+
+def _ordered(inside, lw, reads, rw):
+    """1 for a reading found in the crop, plus 1 for the context word before it, plus 1 for the one after it, all in
+    reading order (10-30: in a reference list 'url' was found in another entry than the one of the passage, its
+    context words elsewhere in the crop)"""
+    if not reads:                      # readings without letters (a symbol, punctuation): the context words in order
+        i = inside.find(lw[0]) if lw else -1
+        e = i + len(lw[0]) if i >= 0 else 0
+        return 1 + (i >= 0) + (bool(rw) and inside.find(rw[0], e) >= 0)
+    best = 0
+    for rd in reads:
+        starts = [i for i in range(len(inside)) if inside.startswith(rd[0], i)]
+        for i in starts:
+            e = _seq(inside, rd, i)
+            if e is None:
+                continue
+            before = bool(lw) and inside.rfind(lw[0], 0, i) >= 0
+            after = bool(rw) and inside.find(rw[0], e) >= 0
+            best = max(best, 1 + before + after)
+    return best
 
 
 def _crop(doc, page, bbox, toks, path, pos=None):
+    pg, r, how = _place(doc, page, bbox, toks, pos)
+    if r is None:
+        _image(pg, pg.rect, 100).save(str(path))
+        return str(path), None
+    _image(pg, r, 300).save(str(path))
+    return str(path), how
+
+
+def _place(doc, page, bbox, toks, pos=None):
     """Crop around the passage. Candidate places come from searching the text layer (passage with left context, the
-    passage, its longest words); a candidate is accepted when the layer words inside it contain the left context and
-    the passage (the primary reading copies the layer), a check that needs no judge. Returns (path, how it was placed or None)."""
+    passage, its longest words). A candidate is scored by the layer words inside it, a check that needs no judge:
+    one reading whole (the primary copies the layer; where the primary is the wrong side, the layer reads like OXR),
+    and the context word on each side, in reading order. 'text layer': reading and both sides; 'text layer, one
+    side': reading and one side (the other side's context may be in another block). Returns (page, rect or None,
+    how it was placed or None). _crop saves it; the crop the judges see is the one gate() passes."""
     pg = LY.page(doc, page - 1)
     W, H = pg.rect.width, pg.rect.height
     block = pymupdf.Rect(bbox[0] * W, bbox[1] * H, bbox[2] * W, bbox[3] * H) * pg.derotation_matrix if bbox else None
     left, prim = toks.get("left", []), toks.get("primary", [])
     right, alt = toks.get("right", []), toks.get("oxr", [])
-    # the layer holds the passage as one of the two readings (the primary copies it; where the primary is the wrong
-    # side, the layer reads like OXR)
-    wants = []
-    for p in (prim, alt):
-        w = [_letters(t) for t in left[-2:] + p if len(_letters(t)) > 1]
-        if not [t for t in p if len(_letters(t)) > 1]:      # passage of signs only: its words around it place it
-            w = [_letters(t) for t in left[-2:] + right[:2] if len(_letters(t)) > 1]
-        if w:
-            wants.append(w)
+    word = lambda ts: [_letters(t) for t in ts if len(_letters(t)) > 1]
+    reads = [w for w in (word(prim), word(alt)) if w]
+    lw, rw = word(left)[-1:], word(right)[:1]
     tries = [" ".join(left[-2:] + prim[:2]), " ".join(left[-1:] + prim[:1]), " ".join(prim)]
     if alt:
         tries += [" ".join(left[-2:] + alt[:2]), " ".join(alt)]
     tries += [" ".join(left[-2:]), " ".join(right[:2])]
     tries += sorted([t for t in prim + left[-2:] if len(t) >= 3], key=len, reverse=True)[:3]
-    first, chosen = None, None
+    first, best, best_score = None, None, 0
     for t in tries:
         t = t.strip()
         if len(t) < 2:
@@ -71,14 +153,17 @@ def _crop(doc, page, bbox, toks, path, pos=None):
                 r = _rect(pg, hit, block)
                 first = first or r
                 inside = _letters("".join(w[4] for w in LY.words(pg, r)))
-                if any(all(x in inside for x in w) for w in wants):
-                    chosen = r; break
-            if chosen:
+                score = _ordered(inside, lw, reads, rw) if (lw or rw or reads) else 0
+                if score > best_score:
+                    best, best_score = r, score
+                if best_score == 3:
+                    break
+            if best_score == 3:
                 break
-        if chosen:
+        if best_score == 3:
             break
-    r = chosen
-    how = "text layer" if chosen else None
+    r = best if best_score >= 2 else None
+    how = ("text layer" if best_score == 3 or (best_score == 2 and not (lw and rw)) else "text layer, one side") if r else None
     if r is None and block is not None and pos is not None:
         # no layer to verify against (scanned page) or it holds neither reading: a band of about five lines around
         # where the passage sits in its block (token position ~ line position in running text)
@@ -91,11 +176,115 @@ def _crop(doc, page, bbox, toks, path, pos=None):
         r = block if block else pg.rect
         r = pymupdf.Rect(r.x0, r.y0, r.x1, min(r.y1, r.y0 + 60)) & pg.rect
         how = None
-    if r.is_empty or r.width < 4 or r.height < 4:      # nothing locatable: the page, scaled down
-        pg.get_pixmap(dpi=100).save(str(path))
-        return str(path), None
-    pg.get_pixmap(dpi=300, clip=r).save(str(path))
-    return str(path), how
+    if r.is_empty or r.width < 4 or r.height < 4:      # nothing locatable
+        return pg, None, None
+    return pg, r, how
+
+
+def _widen(pg, r, block):
+    """r with one more line above and below, to the block's width (or the page's, where the block is unknown)"""
+    inner = [l for l in _lines(pg) if (l & r).height > 0.5 * l.height]
+    lh = min([l.height for l in inner] or [10])
+    x0, x1 = (min(block.x0, r.x0), max(block.x1, r.x1)) if block is not None else (pg.rect.x0 + 18, pg.rect.x1 - 18)
+    out = pymupdf.Rect(x0, r.y0, x1, r.y1)
+    for l in _lines(pg):
+        if l.height <= 2 * lh and r.y0 - 2 * lh <= (l.y0 + l.y1) / 2 <= r.y1 + 2 * lh and l.x0 < x1 and l.x1 > x0:
+            out |= l
+    return pymupdf.Rect(out.x0 - 6, out.y0 - 0.4 * lh, out.x1 + 6, out.y1 + 0.4 * lh) & pg.rect
+
+
+GATE_INSTR = ("The image is a strip cut from a page. Does the strip show this whole stretch of text: the words before, "
+              "the disputed part, and the words after, all visible and not cut off at an edge of the strip? Small "
+              "differences in characters, spacing and line breaks do not matter.")
+
+
+GATE_SIDE = ("The image is a strip cut from a page. Does the strip show this stretch of text: the {side} and the "
+             "disputed part, all visible and not cut off at an edge of the strip? Small differences in characters, "
+             "spacing and line breaks do not matter.")
+
+
+def _gate_q(qid, it, img, side=None):
+    t = it["toks"]
+    L, R = " ".join(t.get("left", [])[-2:]), " ".join(t.get("right", [])[:2])
+    d = f"The disputed part, read in two ways: «{it['primary']}» or «{it['oxr']}»."
+    if side:
+        return {"id": qid, "images": [img], "instructions": GATE_SIDE.format(side=f"words {side}"),
+                "state": f"Words before: «{L}». {d}" if side == "before" else f"{d} Words after: «{R}».",
+                "options": {"yes": "Yes, the whole stretch is visible in the strip.",
+                            "no": "No, part of it is missing or cut off."}}
+    return {"id": qid, "images": [img], "instructions": GATE_INSTR,
+            "state": f"Words before: «{L}». {d} Words after: «{R}».",
+            "options": {"yes": "Yes, the whole stretch is visible in the strip.",
+                        "no": "No, part of it is missing or cut off."}}
+
+
+def _b64(pg, r, dpi):
+    buf = __import__("io").BytesIO(); _image(pg, r, dpi).save(buf, "PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
+def place(pdf, items, work):
+    """The crop each judge sees, checked by jev before any judge looks at it (10-30: the placement rules are
+    distances in points and text-layer search, and a crop that cuts the passage leaves every judge guessing).
+    jev is asked whether the crop shows the two words before, the disputed part and the two words after, whole, in
+    both option orders. 10-30, 396 crops of 37 papers: where the text layer found the passage, jev said yes to 334
+    and no to 24, and the noes it gave were mostly crops that were wrong (another entry of a reference list, the
+    bottom or the end of the line cut off); where the layer did not, jev said yes to 14, all right on inspection.
+    A crop jev rejects is widened by a line each way and asked again, then placed by jev on windows of the block
+    (_jev_place) and asked again. Returns {id: {"path", "placed_by", "checked"}}; checked False: no crop passed and
+    the item is not judged."""
+    from . import jev
+    if not items:
+        return {}
+    work = Path(work); (work / "crops").mkdir(parents=True, exist_ok=True)
+    doc = pymupdf.open(pdf)
+    out, rect = {}, {}
+    for it in items:
+        pg, r, how = _place(doc, it["page"], it["bbox"], it["toks"], it.get("pos"))
+        rect[it["id"]] = (pg, r)
+        out[it["id"]] = {"path": str(work / "crops" / f"{it['id']}.png"), "placed_by": how or "not placed",
+                         "checked": False}
+    by_id = {it["id"]: it for it in items}
+
+    def ask(ids, tag):
+        qs = [_gate_q(i, by_id[i], _b64(*rect[i], 170)) for i in ids if rect[i][1] is not None]
+        ans = jev.ask(qs, work, tag) if qs else {}
+        for i in ids:
+            if ans.get(i) == "yes":
+                out[i]["checked"] = True
+        return [i for i in ids if not out[i]["checked"]]
+
+    left = ask(list(out), "gate")
+    for i in left:
+        pg, r = rect[i]
+        if r is not None:
+            b = by_id[i]["bbox"]; W, H = pg.rect.width, pg.rect.height
+            block = pymupdf.Rect(b[0] * W, b[1] * H, b[2] * W, b[3] * H) * pg.derotation_matrix if b else None
+            rect[i] = (pg, _widen(pg, r, block))
+            out[i]["placed_by"] += ", widened"
+    left = ask(left, "gate_widened")
+    # where the text layer found the context of one side only, the other side's words are in another block (an
+    # author list followed by the title, a colon before a displayed equation; 10-30, 21 of the 22 crops no step
+    # passed were of this kind or wrongly placed): jev checks the side that is there
+    one = [i for i in left if out[i]["placed_by"].startswith("text layer, one side")]
+    if one:
+        qs = [_gate_q(f"{i}|{sd}", by_id[i], _b64(*rect[i], 170), sd) for i in one for sd in ("before", "after")]
+        ans = jev.ask(qs, work, "gate_one_side")
+        for i in one:
+            if "yes" in (ans.get(f"{i}|before"), ans.get(f"{i}|after")):
+                out[i]["checked"], out[i]["placed_by"] = True, out[i]["placed_by"] + ", one side checked"
+        left = [i for i in left if not out[i]["checked"]]
+    for i, (pg, r) in _jev_place(doc, items, set(left), work).items():
+        rect[i] = (pg, r)
+        out[i]["placed_by"] = "jev window"
+    left = ask([i for i in left if out[i]["placed_by"] == "jev window"], "gate_window")
+    for i, o in out.items():
+        pg, r = rect[i]
+        _image(pg, r if r is not None else pg.rect, 300 if r is not None else 100).save(o["path"])
+    tally = __import__("collections").Counter(f"{o['placed_by']} | {'checked' if o['checked'] else 'not checked'}"
+                                              for o in out.values())
+    (work / "gate.json").write_text(json.dumps({"items": len(items), "placed_by": dict(tally.most_common())}, indent=1))
+    return out
 
 
 def _jev_place(doc, items, unverified, work):
@@ -122,7 +311,8 @@ def _jev_place(doc, items, unverified, work):
         t = it["toks"]
         passage = " ".join(t.get("left", [])[-3:] + t.get("primary", []) + t.get("right", [])[:3])
         for k, r in enumerate(wins):
-            img = "data:image/png;base64," + base64.b64encode(pg.get_pixmap(dpi=170, clip=r).tobytes("png")).decode()
+            buf = __import__("io").BytesIO(); _image(pg, r, 170).save(buf, "PNG")
+            img = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
             qs.append({"id": f"{it['id']}|{k}", "state": "A strip cut from a page of a scientific paper.",
                        "instructions": "Does this strip of the page show the following passage (wording may differ in "
                                        "small details, spacing and line breaks do not matter)? Passage: " + passage,
@@ -162,20 +352,13 @@ def _shown(t):
     return "".join("\ufffd" if unicodedata.category(c) == "Cc" and c not in "\n\t" else c for c in t)
 
 
-def judge(pdf, items, work):
-    """items: [{id, page, bbox, left, right, primary, oxr, toks}] -> ({id: 'primary'|'oxr'|'neither'|'undecided'|
-    'not judged: ...'}, crop paths, usage)"""
+def judge(pdf, items, work, placed):
+    """items: [{id, page, bbox, left, right, primary, oxr, toks}], each with a crop place() checked ->
+    ({id: 'primary'|'oxr'|'neither'|'undecided'|'not judged: ...'}, usage)"""
     if not items:
-        return {}, {}, {}
+        return {}, {}
     work = Path(work); (work / "crops").mkdir(parents=True, exist_ok=True)
-    doc = pymupdf.open(pdf)
-    made = {it["id"]: _crop(doc, it["page"], it["bbox"], it["toks"], work / "crops" / f"{it['id']}.png", it.get("pos"))
-            for it in items}
-    crops = {k: v[0] for k, v in made.items()}
-    verified = {k: v[1] for k, v in made.items()}
-    for iid, (pg, r) in _jev_place(doc, items, {k for k, v in verified.items() if v != "text layer"}, work).items():
-        pg.get_pixmap(dpi=300, clip=r).save(crops[iid])
-        verified[iid] = "jev"
+    crops = {it["id"]: placed[it["id"]]["path"] for it in items}
     sheets = _sheets([crops[it["id"]] for it in items], work / "crops")
     res, usage = {}, {}
     page = backends.get("page_judge")
@@ -206,7 +389,5 @@ def judge(pdf, items, work):
                           else "undecided"))
     usage = {o: res[o][1] for o in res}
     (work / "gemini_usage.json").write_text(json.dumps({"items": len(items), "sheets": len(sheets), "usage": usage,
-                                                        "crops_placed_by": dict(__import__("collections").Counter(
-                                                            v or "not placed" for v in verified.values())),
                                                         "errors": {o: res[o][2] for o in res}}, indent=1))
-    return out, {k: {"path": crops[k], "placed_by": verified[k] or "not placed"} for k in crops}, usage
+    return out, usage

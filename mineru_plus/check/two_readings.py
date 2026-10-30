@@ -31,7 +31,8 @@ for _n in ("alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu n
     for _cap in (False, True):
         _name = _n.capitalize() if _cap else _n
         try:
-            _ch = _ud.lookup(("GREEK CAPITAL LETTER " if _cap else "GREEK SMALL LETTER ") + _n.upper())
+            _ch = _ud.lookup(("GREEK CAPITAL LETTER " if _cap else "GREEK SMALL LETTER ") +
+                             _n.upper().replace("LAMBDA", "LAMDA"))   # Unicode spells it LAMDA (10-30: \Lambda unread)
         except KeyError:
             continue
         LATEX.setdefault("\\" + _name, _ch)

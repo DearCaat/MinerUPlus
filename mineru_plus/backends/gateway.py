@@ -91,6 +91,11 @@ class DecisionJudge:
 
     def run(self, fin, fout):
         # two passes: the helper resumes from the out file, and the second pass retries the failures
+        # a helper that fails says why on stderr; it is passed on, since every question is then 'request failed'
+        # (10-30: a batch with a repeated id was refused whole and nothing told)
         for _ in range(2):
-            subprocess.run([sys.executable, self.jev_call, "--api", "jev", "--in", str(fin), "--out", str(fout),
-                            "-j", str(self.jobs)], capture_output=True, text=True)
+            p = subprocess.run([sys.executable, self.jev_call, "--api", "jev", "--in", str(fin), "--out", str(fout),
+                                "-j", str(self.jobs)], capture_output=True, text=True)
+            if p.returncode:
+                print(f"decision judge: {self.jev_call} exited {p.returncode}: {p.stderr.strip()[-800:]}",
+                      file=sys.stderr)

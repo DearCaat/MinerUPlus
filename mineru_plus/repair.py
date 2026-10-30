@@ -299,6 +299,11 @@ def _by_chars(block, s, text, idx, ks, once, spans):
                 continue                        # citation numbers OXR glued on: superscripts, written from the
                                                 # layer by check/dropped.py (10-29: 'resistance.4')
             r = extent(idx[ks[0] + i1 - 1])
+            # punctuation after the last printed character of a formula ends the sentence, not the formula: it goes
+            # after the closing $ (10-30: 'mR2 ,' against '$R ^ { 2 }$' was written '$R ^ { 2, }$')
+            sp = next(((a, b) for a, b in spans if a < r < b), None)
+            if sp and re.fullmatch(r"[.,;:]+", o[j1:j2]) and not any(r <= q < sp[1] for q in idx):
+                out.append((sp[1], sp[1], o[j1:j2])); continue
             t = conv(o[j1:j2], r - 1)
             if t is None:
                 return None
