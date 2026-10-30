@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mineru-plus"
+version = "0.5.5"
+description = "Parse a paper PDF and check the parse against its text layer and a second, independent reading of the page image."
+requires-python = ">=3.10"
+dependencies = ["pymupdf", "pillow"]
+
+[project.scripts]
+mineru-plus = "mineru_plus.run:main"
+
+[tool.setuptools.packages.find]
+include = ["mineru_plus*"]
+
+[tool.setuptools.package-data]
+"mineru_plus.check" = ["confusables.txt"]

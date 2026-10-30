@@ -1,0 +1,29 @@
+{
+  "_about": "Public setup. Copy this file to mineru_plus.json (git-ignored) or pass --config PATH. Each role names a backend and its options. Credentials are named by environment variables (api_key_env) and never written here. The base_url and model values are placeholders for the service you run.",
+  "_primary_note": "primary_reader runs mineru-kit (the mineru package, MinerU 4.x) on this machine and does not call mineru.net unless extra_args has --remote. Install it in its own environment, e.g. uv pip install 'mineru>=4.0,<5', and set command to its path if it is not on PATH. The first parse may download models.",
+  "primary_reader": {
+    "backend": "mineru_kit",
+    "command": "mineru-kit",
+    "tier": "standard",
+    "timeout_s": 3600
+  },
+  "second_reader": {
+    "backend": "openai_vlm",
+    "base_url": "https://api.openai.com/v1",
+    "model": "your-vision-model",
+    "api_key_env": "OPENAI_API_KEY",
+    "dpi": 200
+  },
+  "decision_judge": {
+    "backend": "openai",
+    "base_url": "https://api.openai.com/v1",
+    "model": "your-model",
+    "api_key_env": "OPENAI_API_KEY"
+  },
+  "page_judge": {
+    "backend": "openai",
+    "base_url": "https://api.openai.com/v1",
+    "model": "your-vision-model",
+    "api_key_env": "OPENAI_API_KEY"
+  }
+}

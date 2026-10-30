@@ -1,0 +1,7 @@
+{
+  "_about": "Gateway setup with placeholder paths. The paths are local to the machine that runs the gateway helpers. Copy this file outside the repository (or to mineru_plus.json, which is git-ignored) and fill in the paths. Credentials stay with the helper scripts.",
+  "primary_reader": {"backend": "gateway", "tool_call": "/path/to/tool-call.py", "tier": "advanced"},
+  "second_reader": {"backend": "gateway", "tool_call": "/path/to/tool-call.py"},
+  "decision_judge": {"backend": "gateway", "jev_call": "/path/to/jev-call.py", "model": "your-judge-model", "jobs": 24},
+  "page_judge": {"backend": "agy", "command": "agy-min", "model": "gemini-3.8-flash-high", "timeout_s": 3600}
+}

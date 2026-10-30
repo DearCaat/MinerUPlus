@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+# local setup with machine-specific paths (see config.example.json and config.gateway.example.json)
+mineru_plus.json
