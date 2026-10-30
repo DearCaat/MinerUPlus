@@ -1,0 +1,69 @@
+[
+ {
+  "kind": "text layer not in the parse",
+  "why": "printed (jev); not placed, edit by hand",
+  "page": 1,
+  "layer": "0.012).",
+  "parse": "0.012",
+  "crop": "crops/r1.50.13.png"
+ },
+ {
+  "kind": "text layer not in the parse",
+  "why": "printed (jev); not placed, edit by hand",
+  "page": 1,
+  "layer": "(p",
+  "parse": "ρ",
+  "crop": "crops/r1.50.11.png"
+ },
+ {
+  "kind": "text layer not in the parse",
+  "why": "printed (jev); not placed, edit by hand",
+  "page": 1,
+  "layer": "0.010),",
+  "parse": "0.010,",
+  "crop": "crops/r1.50.9.png"
+ },
+ {
+  "kind": "text layer not in the parse",
+  "why": "printed (jev); not placed, edit by hand",
+  "page": 1,
+  "layer": "(p",
+  "parse": "p",
+  "crop": "crops/r1.50.7.png"
+ },
+ {
+  "kind": "text layer not in the parse",
+  "why": "printed (jev); not placed, edit by hand",
+  "page": 1,
+  "layer": "(p",
+  "parse": "(ρ",
+  "crop": "crops/r1.50.5.png"
+ },
+ {
+  "kind": "text layer not in the parse",
+  "why": "printed (jev); not placed, edit by hand",
+  "page": 1,
+  "layer": "0.015),",
+  "parse": "0.015,",
+  "crop": "crops/r1.50.3.png"
+ },
+ {
+  "kind": "text layer not in the parse",
+  "why": "printed (jev); not placed, edit by hand",
+  "page": 1,
+  "layer": "(p",
+  "parse": "ρ",
+  "crop": "crops/r1.50.1.png"
+ },
+ {
+  "kind": "disagreement",
+  "id": "d0043",
+  "page": 9,
+  "why": "page reading not settled (neither)",
+  "primary": "Estained",
+  "oxr": "E - stained",
+  "context": "surgery based on the widely collected H & [...] histopathology slides , thereby contributing to precision oncology",
+  "crop": "crops/d0043.png",
+  "crop_placed_by": "text layer"
+ }
+]

@@ -9,6 +9,68 @@ agent 引用论文原文、抽样本量和 p 值、从图表建数据集时，�
 
 ---
 
+## 一次真实运行
+
+论文：Xu 等，*Predicting Axillary Lymph Node Metastasis in Early Breast Cancer Using Deep Learning on Primary Tumor Biopsy Slides*，Frontiers in Oncology 2021（[doi:10.3389/fonc.2021.759007](https://doi.org/10.3389/fonc.2021.759007)，CC BY 4.0），共 11 页。这次运行的全部文件都在 [`examples/frontiers_bcnb/`](examples/frontiers_bcnb/)。读取器的原始 markdown 和最终结果放在一起，可以逐行对照。
+
+**样本量。** 这里读取器把数字读错了：
+
+![页面截图](examples/frontiers_bcnb/crops/d0032.png)
+
+| | 文本 |
+|---|---|
+| MinerU（advanced） | `V, validation cohort $( n = 2 7 0 ) ; 1 - T ,$ independent test cohort $( n = 2 7 8 ) ; A L N ,$` |
+| MinerUPlus | `V, validation cohort $( n = 210 ) ; I - T ,$ independent test cohort $( n = 218 ) ; A L N ,$` |
+
+- `270 → 210`：第二读取器（OXR）的读法和 MinerU 不一致，由读页判定器看截图定下。
+- `278 → 218`：由判定器确认截图上印的正是 `218`。
+- `1 → I`：由文本层定下。
+- 数字里的空格也去掉了，现在搜 `n = 210` 能搜到。
+
+**p 值被读成 ρ。**
+
+![页面截图](examples/frontiers_bcnb/crops/d0001.png)
+
+| | 文本 |
+|---|---|
+| MinerU（advanced） | `density $\langle \rho   =   0 . 0 1 5 \rangle$ , circumference $\left( \rho   =   0.009 \right)$` |
+| MinerUPlus | `density $\langle (p = 0.015 \rangle$ , circumference $\left( p = 0.009 \right)$` |
+
+`ρ → p` 改对了。尖括号还是错的：文本层印的是 `(p = 0.015)`，但这处在公式内部，没法安全地写回去，所以作为未决问题附截图交给调用方（[`issues.json`](examples/frontiers_bcnb/issues.json)）。
+
+**它定不了的地方。**
+
+![页面截图](examples/frontiers_bcnb/crops/d0043.png)
+
+MinerU 读成 `Estained`，OXR 读成 `E - stained`。页面上印的是跨行的 `H&E-stained`，但截图只截到了第二行，读页判定器两种读法都没选。这一处作为未决问题附截图交还调用方。
+
+**报告**（[`report.md`](examples/frontiers_bcnb/report.md)）开头是这样的：
+
+```
+# mineru_plus 0.5.5 — frontiers_bcnb.pdf
+
+11 pages; every page has a text layer.
+Readers: mineru, oxr.
+Figure transcriptions: 4 (figures.json), 4 moved out of full.md; 0/215 of their tokens are printed in the figure's ...
+
+## Measured on this document
+- dropped: 9 places where the text layer has characters the primary lacks: jev reads the layer's form on the page ...
+- reflow: 10 paragraphs end mid-sentence before the next text block: 8 joined with their continuation (1 with figu ...
+- tables: 2 tables checked against the text layer cell by cell: 3 look-alike characters and 0 spaces between a cel ...
+- characters: 8806/8903 primary tokens agree with OXR; 27 corrections written (3 line-break spellings), 1 left ope ...
+- formula_spacing: 28 formulas respelled without the spaces LaTeX ignores ('0 . 0 1 5' as '0.015', '\mathrm { A U ...
+...
+## Not checked
+- page headers, footers and page numbers: checked against the text layer only (coverage); a broken layer there is ...
+- figure transcriptions beyond the printed labels (figures.json): the reader's estimate
+
+## Open issues: 8 (issues.json)
+```
+
+报告后面还列出本次运行用的后端，以及每项核对的校准数据。
+
+---
+
 ## 为什么要做
 
 现在的文档解析器靠视觉模型读页面图像。在原生电子版论文上，出错的结果看上去和正确文本一模一样：

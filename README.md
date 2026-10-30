@@ -13,6 +13,75 @@ wrong. MinerUPlus returns the reading together with that statement.
 
 ---
 
+## A real run
+
+Paper: Xu et al., *Predicting Axillary Lymph Node Metastasis in Early Breast Cancer Using Deep Learning on Primary
+Tumor Biopsy Slides*, Frontiers in Oncology 2021 ([doi:10.3389/fonc.2021.759007](https://doi.org/10.3389/fonc.2021.759007),
+CC BY 4.0), 11 pages. Every file of this run is in [`examples/frontiers_bcnb/`](examples/frontiers_bcnb/), with the
+reader's untouched markdown next to the result, so you can compare them line by line.
+
+**Sample sizes.** Here the reader got the numbers wrong:
+
+![page crop](examples/frontiers_bcnb/crops/d0032.png)
+
+| | text |
+|---|---|
+| MinerU (advanced) | `V, validation cohort $( n = 2 7 0 ) ; 1 - T ,$ independent test cohort $( n = 2 7 8 ) ; A L N ,$` |
+| MinerUPlus | `V, validation cohort $( n = 210 ) ; I - T ,$ independent test cohort $( n = 218 ) ; A L N ,$` |
+
+- `270 → 210`: the second reader (OXR) disagreed, and the page judge read the crop.
+- `278 → 218`: the decision judge confirmed that the crop prints exactly `218`.
+- `1 → I`: settled by the text layer.
+- The spacing inside the numbers was removed, so a search for `n = 210` now finds it.
+
+**p-values read as ρ.**
+
+![page crop](examples/frontiers_bcnb/crops/d0001.png)
+
+| | text |
+|---|---|
+| MinerU (advanced) | `density $\langle \rho   =   0 . 0 1 5 \rangle$ , circumference $\left( \rho   =   0.009 \right)$` |
+| MinerUPlus | `density $\langle (p = 0.015 \rangle$ , circumference $\left( p = 0.009 \right)$` |
+
+`ρ → p` was fixed. The angle brackets are still wrong. The text layer prints `(p = 0.015)`, but MinerUPlus could not
+place that edit safely inside the formula, so it is left as an open issue with its crop for the calling agent
+([`issues.json`](examples/frontiers_bcnb/issues.json)).
+
+**An item it does not decide.**
+
+![page crop](examples/frontiers_bcnb/crops/d0043.png)
+
+MinerU read `Estained` and OXR read `E - stained`; the page prints `H&E-stained` across a line break. The crop shows
+only the second line, so the page judge chose neither reading. The item goes back to the caller as an open issue,
+with the crop.
+
+**The report** ([`report.md`](examples/frontiers_bcnb/report.md)) starts like this:
+
+```
+# mineru_plus 0.5.5 — frontiers_bcnb.pdf
+
+11 pages; every page has a text layer.
+Readers: mineru, oxr.
+Figure transcriptions: 4 (figures.json), 4 moved out of full.md; 0/215 of their tokens are printed in the figure's ...
+
+## Measured on this document
+- dropped: 9 places where the text layer has characters the primary lacks: jev reads the layer's form on the page ...
+- reflow: 10 paragraphs end mid-sentence before the next text block: 8 joined with their continuation (1 with figu ...
+- tables: 2 tables checked against the text layer cell by cell: 3 look-alike characters and 0 spaces between a cel ...
+- characters: 8806/8903 primary tokens agree with OXR; 27 corrections written (3 line-break spellings), 1 left ope ...
+- formula_spacing: 28 formulas respelled without the spaces LaTeX ignores ('0 . 0 1 5' as '0.015', '\mathrm { A U ...
+...
+## Not checked
+- page headers, footers and page numbers: checked against the text layer only (coverage); a broken layer there is ...
+- figure transcriptions beyond the printed labels (figures.json): the reader's estimate
+
+## Open issues: 8 (issues.json)
+```
+
+The report goes on to list the backends of the run and the calibration of each check.
+
+---
+
 ## Why
 
 Modern document parsers read the page image with a vision model. On born-digital papers this produces failures

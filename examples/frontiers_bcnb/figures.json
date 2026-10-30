@@ -1,0 +1,66 @@
+[
+ {
+  "page": 3,
+  "type": "image_body",
+  "bbox": [
+   0.258,
+   0.098,
+   0.744,
+   0.37
+  ],
+  "image_path": "images/page_2_image_2.jpg",
+  "text": "```mermaid\ngraph TD\n  A[\"Patients with CNB pathologically confirmed primary breast cancer from May 2010 to August 2020\\nN=3020\"] --> B[\"Patients with early invasive breast cancer\\nN=1393\"]\n  A --> C[\"Excluded N=1627\\nT3 or M1 stage N=561\\nNo surgery after CNB N=403\\nPathologically confirmed ductal carcinoma in situ N=225\\nPhysically or imaging positive LNs N=438\"]\n  B --> D[\"Patients with standard CNB slides\\nN=1058\"]\n  B --> E[\"Excluded N=335\\nCNB specimens <3 for each patient N=183\\nMissing wax blocks and HE slices N=25\\nLow quality HE slices or WSI images N=83\\nInconsistent ER/PR/HER-2 status between CNB and resected specimens N=44\"]\n  D --> F[\"LN metastasis\\n403 individuals\"]\n  D --> G[\"No LN metastasis\\n655 individuals\"]\n```",
+  "text_layer_words_in_box": 0,
+  "tokens": 111,
+  "tokens_printed": 0,
+  "in_markdown": true
+ },
+ {
+  "page": 4,
+  "type": "image_body",
+  "bbox": [
+   0.137,
+   0.657,
+   0.864,
+   0.796
+  ],
+  "image_path": "images/page_3_image_4.jpg",
+  "text": "```mermaid\ngraph LR\n  A[\"WSI\"] --> B[\"patch\"]\n  B --> C[\"nuclei segmentation\"]\n  C --> D[\"features\"]\n  D --> E[\"histogram\"]\n  E --> F[\"matrix\"]\n  F --> G[\"DL-CNB\"]\n  G --> H[\"output\"]\n  G --> I[\"feature weights\"]\n```",
+  "text_layer_words_in_box": 4,
+  "tokens": 12,
+  "tokens_printed": 0,
+  "in_markdown": true
+ },
+ {
+  "page": 6,
+  "type": "chart_body",
+  "bbox": [
+   0.258,
+   0.606,
+   0.741,
+   0.871
+  ],
+  "image_path": "images/page_5_chart_15.jpg",
+  "text": "| 1-Specificity | Clinical data only (Sensitivity) | DL-CNB (Sensitivity) | DL-CNB+C (Sensitivity) |\n| --- | --- | --- | --- |\n| 0.0 | 0.0 | 0.0 | 0.0 |\n| ~0.05 | ~0.1 | ~0.25 | ~0.25 |\n| ~0.1 | ~0.2 | ~0.4 | ~0.4 |\n| ~0.2 | ~0.3 | ~0.6 | ~0.7 |\n| ~0.3 | ~0.45 | ~0.75 | ~0.8 |\n| ~0.4 | ~0.55 | ~0.85 | ~0.9 |\n| ~0.5 | ~0.65 | ~0.95 | ~0.95 |\n| ~0.6 | ~0.75 | ~1.0 | ~1.0 |\n| ~0.7 | ~0.85 | 1.0 | 1.0 |\n| ~0.8 | ~0.9 | 1.0 | 1.0 |\n| ~0.9 | ~0.95 | 1.0 | 1.0 |\n| 1.0 | 1.0 | 1.0 | 1.0 |",
+  "text_layer_words_in_box": 0,
+  "tokens": 61,
+  "tokens_printed": 0,
+  "in_markdown": true
+ },
+ {
+  "page": 7,
+  "type": "chart_body",
+  "bbox": [
+   0.257,
+   0.098,
+   0.744,
+   0.36
+  ],
+  "image_path": "images/page_6_chart_2.jpg",
+  "text": "| Ground Truth | Predicted Label::N0 | Predicted Label::N+(1-2) | Predicted Label::\\(N+(\\ge 3)\\) |\n| --- | --- | --- | --- |\n| N0 | 124 | 2 | 5 |\n| N+(1-2) | 25 | 20 | 5 |\n| \\(N+(\\ge 3)\\) | 17 | 14 | 6 |",
+  "text_layer_words_in_box": 0,
+  "tokens": 31,
+  "tokens_printed": 0,
+  "in_markdown": true
+ }
+]

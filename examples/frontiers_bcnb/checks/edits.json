@@ -1,0 +1,256 @@
+[
+ {
+  "id": "d0003",
+  "page": 1,
+  "route": "characters",
+  "by": "gemini page",
+  "old": "\\rho =",
+  "new": "(p="
+ },
+ {
+  "id": "d0002",
+  "page": 1,
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "old": "\\rho ",
+  "new": "p"
+ },
+ {
+  "id": "d0001",
+  "page": 1,
+  "route": "characters",
+  "by": "gemini page",
+  "old": "\\rho ",
+  "new": "(p"
+ },
+ {
+  "id": "d0016",
+  "page": 4,
+  "route": "characters",
+  "by": "gemini page",
+  "old": "m",
+  "new": "mn"
+ },
+ {
+  "id": "d0015",
+  "page": 4,
+  "route": "characters",
+  "by": "text layer (letters of another script)",
+  "old": "\\eta }",
+  "new": "n}"
+ },
+ {
+  "id": "d0032",
+  "page": 6,
+  "route": "characters",
+  "by": "jev (exactly printed)",
+  "old": "7",
+  "new": "1"
+ },
+ {
+  "id": "d0031",
+  "page": 6,
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "old": "1",
+  "new": "I"
+ },
+ {
+  "id": "d0030",
+  "page": 6,
+  "route": "characters",
+  "by": "gemini page",
+  "old": "7",
+  "new": "1"
+ },
+ {
+  "id": "d0046",
+  "page": 9,
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "old": "Espié",
+  "new": "Espié"
+ },
+ {
+  "id": "d0045",
+  "page": 9,
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "old": "Hindié",
+  "new": "Hindié"
+ },
+ {
+  "id": "d0048",
+  "page": 9,
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "old": "Wilén",
+  "new": "Wilén"
+ },
+ {
+  "id": "d0007",
+  "page": 2,
+  "route": "line-break hyphen",
+  "by": "jev spelling",
+  "old": "patientrelated",
+  "new": "patient-related"
+ },
+ {
+  "id": "d0009",
+  "page": 3,
+  "route": "line-break hyphen",
+  "by": "document usage",
+  "old": "Inceptionv3",
+  "new": "Inception-v3"
+ },
+ {
+  "id": "d0017",
+  "page": 5,
+  "route": "line-break hyphen",
+  "by": "jev spelling",
+  "old": "twosided",
+  "new": "two-sided"
+ },
+ {
+  "id": "r5.5.1",
+  "page": 5,
+  "route": "dropped",
+  "by": "jev",
+  "old": "> 0 . 0 5 )$",
+  "new": "> 0 . 0 5 )$."
+ },
+ {
+  "id": "r6.5.3",
+  "page": 6,
+  "route": "dropped",
+  "by": "jev",
+  "old": "{ 1 } - 2 )$ and N+(≥3)",
+  "new": "{ 1 } - 2 )$, and N+(≥3)"
+ },
+ {
+  "id": "j2.5",
+  "page": 2,
+  "route": "reflow",
+  "by": "jev",
+  "old": "core-needle biopsy",
+  "new": "core-needle biopsy",
+  "moved": {},
+  "skipped_blocks": 0
+ },
+ {
+  "id": "j3.11",
+  "page": 3,
+  "route": "reflow",
+  "by": "jev",
+  "old": "chi-square test.",
+  "new": "chi-square test.",
+  "moved": {
+   "image": 2,
+   "image_caption": 2
+  },
+  "skipped_blocks": 0
+ },
+ {
+  "id": "j5.10",
+  "page": 5,
+  "route": "reflow",
+  "by": "jev",
+  "old": "classification by",
+  "new": "classification by",
+  "moved": {
+   "table": 1,
+   "table_caption": 1,
+   "table_footnote": 1
+  },
+  "skipped_blocks": 0
+ },
+ {
+  "id": "j7.7",
+  "page": 7,
+  "route": "reflow",
+  "by": "jev",
+  "old": "of each",
+  "new": "of each",
+  "moved": {},
+  "skipped_blocks": 0
+ },
+ {
+  "id": "j7.11",
+  "page": 7,
+  "route": "reflow",
+  "by": "jev",
+  "old": "data alone.",
+  "new": "data alone.",
+  "moved": {
+   "image": 1,
+   "image_caption": 3
+  },
+  "skipped_blocks": 0
+ },
+ {
+  "id": "j8.4",
+  "page": 8,
+  "route": "reflow",
+  "by": "jev",
+  "old": "For example,",
+  "new": "For example,",
+  "moved": {},
+  "skipped_blocks": 0
+ },
+ {
+  "id": "j8.6",
+  "page": 8,
+  "route": "reflow",
+  "by": "jev",
+  "old": "circumference, circularity,",
+  "new": "circumference, circularity,",
+  "moved": {},
+  "skipped_blocks": 0
+ },
+ {
+  "id": "j10.5",
+  "page": 10,
+  "route": "reflow",
+  "by": "jev",
+  "old": "in this",
+  "new": "in this",
+  "moved": {},
+  "skipped_blocks": 0
+ },
+ {
+  "id": "t6.7.67",
+  "page": 6,
+  "route": "table",
+  "by": "text layer",
+  "cell": [
+   9,
+   1
+  ],
+  "old": "I-T",
+  "new": "I−T"
+ },
+ {
+  "id": "t6.7.45",
+  "page": 6,
+  "route": "table",
+  "by": "text layer",
+  "cell": [
+   6,
+   1
+  ],
+  "old": "I-T",
+  "new": "I−T"
+ },
+ {
+  "id": "t6.7.23",
+  "page": 6,
+  "route": "table",
+  "by": "text layer",
+  "cell": [
+   3,
+   1
+  ],
+  "old": "I-T",
+  "new": "I−T"
+ }
+]

@@ -1,0 +1,3639 @@
+[
+ {
+  "kind": "spacing",
+  "page": 1,
+  "blocks": [
+   50
+  ],
+  "bbox": [
+   0.29,
+   0.693,
+   0.927,
+   0.853
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.075,
+  "primary": "VGG16 BN",
+  "oxr": "VGG16BN",
+  "primary_text": "VGG16_BN",
+  "oxr_text": "VGG16BN",
+  "raw_span": [
+   47,
+   56
+  ],
+  "primary_toks": [
+   "VGG16",
+   "BN"
+  ],
+  "oxr_toks": [
+   "VGG16BN"
+  ],
+  "left": [
+   "best",
+   "-",
+   "performing",
+   "DL",
+   "-",
+   "CNB",
+   "model",
+   "with"
+  ],
+  "right": [
+   "as",
+   "the",
+   "feature",
+   "extractor",
+   "achieved",
+   "an",
+   "AUC",
+   "of"
+  ],
+  "context": "best - performing DL - CNB model with [...] as the feature extractor achieved an AUC of",
+  "id": "d0000",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "content",
+  "page": 1,
+  "blocks": [
+   50
+  ],
+  "bbox": [
+   0.29,
+   0.693,
+   0.927,
+   0.853
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.863,
+  "primary": "ρ",
+  "oxr": "( p",
+  "primary_text": "ρ",
+  "oxr_text": "(p",
+  "raw_span": [
+   614,
+   615
+  ],
+  "primary_toks": [
+   "ρ"
+  ],
+  "oxr_toks": [
+   "(",
+   "p"
+  ],
+  "left": [
+   "were",
+   "characterized",
+   "by",
+   "the",
+   "nucleus",
+   "features",
+   "including",
+   "density"
+  ],
+  "right": [
+   "=",
+   "0.015",
+   ",",
+   "circumference",
+   "(",
+   "ρ",
+   "=",
+   "0.009"
+  ],
+  "context": "were characterized by the nucleus features including density [...] = 0.015 , circumference ( ρ = 0.009",
+  "id": "d0001",
+  "route": "characters",
+  "by": "gemini page",
+  "primary_shown": "ρ",
+  "oxr_shown": "(p",
+  "verdict": "oxr",
+  "crop": "crops/d0001.png",
+  "crop_placed_by": "text layer",
+  "plan": "edit",
+  "written": true
+ },
+ {
+  "kind": "look-alike",
+  "page": 1,
+  "blocks": [
+   50
+  ],
+  "bbox": [
+   0.29,
+   0.693,
+   0.927,
+   0.853
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.904,
+  "primary": "ρ",
+  "oxr": "p",
+  "primary_text": "ρ",
+  "oxr_text": "p",
+  "raw_span": [
+   668,
+   669
+  ],
+  "primary_toks": [
+   "ρ"
+  ],
+  "oxr_toks": [
+   "p"
+  ],
+  "left": [
+   "including",
+   "density",
+   "ρ",
+   "=",
+   "0.015",
+   ",",
+   "circumference",
+   "("
+  ],
+  "right": [
+   "=",
+   "0.009",
+   ")",
+   ",",
+   "circularity",
+   "p",
+   "=",
+   "0.010"
+  ],
+  "context": "including density ρ = 0.015 , circumference ( [...] = 0.009 ) , circularity p = 0.010",
+  "id": "d0002",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "oxr",
+  "plan": "edit",
+  "written": true
+ },
+ {
+  "kind": "content",
+  "page": 1,
+  "blocks": [
+   50
+  ],
+  "bbox": [
+   0.29,
+   0.693,
+   0.927,
+   0.853
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.986,
+  "primary": "ρ",
+  "oxr": "( p",
+  "primary_text": "ρ",
+  "oxr_text": "(p",
+  "raw_span": [
+   771,
+   772
+  ],
+  "primary_toks": [
+   "ρ"
+  ],
+  "oxr_toks": [
+   "(",
+   "p"
+  ],
+  "left": [
+   ",",
+   "circularity",
+   "p",
+   "=",
+   "0.010",
+   ",",
+   "and",
+   "orientation"
+  ],
+  "right": [
+   "=",
+   "0.012",
+   "Conclusion",
+   ":",
+   "Our",
+   "study",
+   "provides",
+   "a"
+  ],
+  "context": ", circularity p = 0.010 , and orientation [...] = 0.012 Conclusion : Our study provides a",
+  "id": "d0003",
+  "route": "characters",
+  "by": "gemini page",
+  "primary_shown": "ρ",
+  "oxr_shown": "(p",
+  "verdict": "oxr",
+  "crop": "crops/d0003.png",
+  "crop_placed_by": "text layer",
+  "plan": "edit",
+  "written": true
+ },
+ {
+  "kind": "markup",
+  "page": 2,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.075,
+   0.105,
+   0.486,
+   0.325
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.071,
+  "primary": "’",
+  "oxr": "'",
+  "primary_text": "’",
+  "oxr_text": "'",
+  "raw_span": [
+   58,
+   59
+  ],
+  "primary_toks": [
+   "’"
+  ],
+  "oxr_toks": [
+   "'"
+  ],
+  "left": [
+   ")",
+   "has",
+   "become",
+   "the",
+   "greatest",
+   "threat",
+   "to",
+   "women"
+  ],
+  "right": [
+   "s",
+   "health",
+   "worldwide",
+   "(",
+   "1",
+   ")",
+   ".",
+   "Clinically"
+  ],
+  "context": ") has become the greatest threat to women [...] s health worldwide ( 1 ) . Clinically",
+  "id": "d0004",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "markup",
+  "page": 2,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.075,
+   0.105,
+   0.486,
+   0.325
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.815,
+  "primary": "’",
+  "oxr": "'",
+  "primary_text": "’",
+  "oxr_text": "'",
+  "raw_span": [
+   737,
+   738
+  ],
+  "primary_toks": [
+   "’"
+  ],
+  "oxr_toks": [
+   "'"
+  ],
+  "left": [
+   "the",
+   "availability",
+   "of",
+   "radionuclide",
+   "tracers",
+   "and",
+   "the",
+   "surgeon"
+  ],
+  "right": [
+   "s",
+   "experience",
+   "(",
+   "5",
+   ",",
+   "6",
+   ")",
+   "."
+  ],
+  "context": "the availability of radionuclide tracers and the surgeon [...] s experience ( 5 , 6 ) .",
+  "id": "d0005",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 2,
+  "blocks": [
+   4
+  ],
+  "bbox": [
+   0.075,
+   0.327,
+   0.486,
+   0.59
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.793,
+  "primary": "–",
+  "oxr": "-",
+  "primary_text": "–",
+  "oxr_text": "-",
+  "raw_span": [
+   823,
+   824
+  ],
+  "primary_toks": [
+   "–"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "DL",
+   "model",
+   "based",
+   "on",
+   "diffusion",
+   "-",
+   "weighted",
+   "imaging"
+  ],
+  "right": [
+   "magnetic",
+   "resonance",
+   "imaging",
+   "(",
+   "DWI",
+   "-",
+   "MRI",
+   ")"
+  ],
+  "context": "DL model based on diffusion - weighted imaging [...] magnetic resonance imaging ( DWI - MRI )",
+  "id": "d0006",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "content",
+  "page": 2,
+  "blocks": [
+   13
+  ],
+  "bbox": [
+   0.513,
+   0.549,
+   0.924,
+   0.769
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.168,
+  "primary": "patientrelated",
+  "oxr": "patient - related",
+  "primary_text": "patientrelated",
+  "oxr_text": "patient-related",
+  "raw_span": [
+   180,
+   194
+  ],
+  "primary_toks": [
+   "patientrelated"
+  ],
+  "oxr_toks": [
+   "patient",
+   "-",
+   "related"
+  ],
+  "left": [
+   "two",
+   "independent",
+   "and",
+   "experienced",
+   "pathologists",
+   "blinded",
+   "to",
+   "all"
+  ],
+  "right": [
+   "information",
+   ".",
+   "A",
+   "WSI",
+   "was",
+   "classified",
+   "into",
+   "positive"
+  ],
+  "context": "two independent and experienced pathologists blinded to all [...] information . A WSI was classified into positive",
+  "id": "d0007",
+  "route": "line-break hyphen",
+  "split": "patient-|related",
+  "usage": {
+   "hyphen": 0,
+   "joined": 0
+  },
+  "by": "jev spelling",
+  "verdict": "hyphen",
+  "plan": "edit"
+ },
+ {
+  "kind": "spacing",
+  "page": 3,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.07,
+   0.424,
+   0.488,
+   0.912
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.132,
+  "primary": "VGG16 BN",
+  "oxr": "VGG16BN",
+  "primary_text": "VGG16_BN",
+  "oxr_text": "VGG16BN",
+  "raw_span": [
+   235,
+   244
+  ],
+  "primary_toks": [
+   "VGG16",
+   "BN"
+  ],
+  "oxr_toks": [
+   "VGG16BN"
+  ],
+  "left": [
+   "VGG16",
+   "(",
+   "28",
+   ")",
+   "with",
+   "batch",
+   "norm",
+   "("
+  ],
+  "right": [
+   ")",
+   ",",
+   "ResNet50",
+   "(",
+   "29",
+   ")",
+   ",",
+   "DenseNet121"
+  ],
+  "context": "VGG16 ( 28 ) with batch norm ( [...] ) , ResNet50 ( 29 ) , DenseNet121",
+  "id": "d0008",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "content",
+  "page": 3,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.07,
+   0.424,
+   0.488,
+   0.912
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.169,
+  "primary": "Inceptionv3",
+  "oxr": "Inception - v3",
+  "primary_text": "Inceptionv3",
+  "oxr_text": "Inception-v3",
+  "raw_span": [
+   284,
+   295
+  ],
+  "primary_toks": [
+   "Inceptionv3"
+  ],
+  "oxr_toks": [
+   "Inception",
+   "-",
+   "v3"
+  ],
+  "left": [
+   ")",
+   ",",
+   "DenseNet121",
+   "(",
+   "30",
+   ")",
+   ",",
+   "and"
+  ],
+  "right": [
+   "(",
+   "31",
+   ")",
+   "were",
+   "compared",
+   "to",
+   "find",
+   "the"
+  ],
+  "context": ") , DenseNet121 ( 30 ) , and [...] ( 31 ) were compared to find the",
+  "id": "d0009",
+  "route": "line-break hyphen",
+  "split": "Inception-|v3",
+  "usage": {
+   "hyphen": 1,
+   "joined": 0
+  },
+  "verdict": "hyphen",
+  "by": "document usage",
+  "plan": "edit"
+ },
+ {
+  "kind": "spacing",
+  "page": 3,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.07,
+   0.424,
+   0.488,
+   0.912
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.445,
+  "primary": "Nfeature",
+  "oxr": "N feature",
+  "primary_text": "Nfeature",
+  "oxr_text": "N feature",
+  "raw_span": [
+   909,
+   917
+  ],
+  "primary_toks": [
+   "Nfeature"
+  ],
+  "oxr_toks": [
+   "N",
+   "feature"
+  ],
+  "left": [
+   "part",
+   "of",
+   "Figure",
+   "2B",
+   ")",
+   ".",
+   "The",
+   "extracted"
+  ],
+  "right": [
+   "vectors",
+   "of",
+   "image",
+   "instances",
+   "were",
+   "first",
+   "processed",
+   "by"
+  ],
+  "context": "part of Figure 2B ) . The extracted [...] vectors of image instances were first processed by",
+  "id": "d0010",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 3,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.07,
+   0.424,
+   0.488,
+   0.912
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.483,
+  "primary": "–",
+  "oxr": "-",
+  "primary_text": "–",
+  "oxr_text": "-",
+  "raw_span": [
+   988,
+   989
+  ],
+  "primary_toks": [
+   "–"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "processed",
+   "by",
+   "the",
+   "max",
+   "-",
+   "pooling",
+   "(",
+   "32"
+  ],
+  "right": [
+   "34",
+   ")",
+   "and",
+   "reshaping",
+   "and",
+   "then",
+   "were",
+   "passed"
+  ],
+  "context": "processed by the max - pooling ( 32 [...] 34 ) and reshaping and then were passed",
+  "id": "d0011",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "spacing",
+  "page": 3,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.07,
+   0.424,
+   0.488,
+   0.912
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.537,
+  "primary": "Nweight",
+  "oxr": "N weight",
+  "primary_text": "Nweight",
+  "oxr_text": "N weight",
+  "raw_span": [
+   1075,
+   1082
+  ],
+  "primary_toks": [
+   "Nweight"
+  ],
+  "oxr_toks": [
+   "N",
+   "weight"
+  ],
+  "left": [
+   "fully",
+   "connected",
+   "(",
+   "FC",
+   ")",
+   "layer",
+   ".",
+   "The"
+  ],
+  "right": [
+   "factors",
+   "for",
+   "the",
+   "instances",
+   "in",
+   "the",
+   "bag",
+   "were"
+  ],
+  "context": "fully connected ( FC ) layer . The [...] factors for the instances in the bag were",
+  "id": "d0012",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 3,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.07,
+   0.424,
+   0.488,
+   0.912
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.908,
+  "primary": "−",
+  "oxr": "-",
+  "primary_text": "−",
+  "oxr_text": "-",
+  "raw_span": [
+   1905,
+   1906
+  ],
+  "primary_toks": [
+   "−"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "We",
+   "used",
+   "Adam",
+   "optimizer",
+   "with",
+   "learning",
+   "rate",
+   "1e"
+  ],
+  "right": [
+   "4",
+   "to",
+   "update",
+   "the",
+   "model",
+   "parameters",
+   "and",
+   "weight"
+  ],
+  "context": "We used Adam optimizer with learning rate 1e [...] 4 to update the model parameters and weight",
+  "id": "d0013",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 3,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.07,
+   0.424,
+   0.488,
+   0.912
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.935,
+  "primary": "−",
+  "oxr": "-",
+  "primary_text": "−",
+  "oxr_text": "-",
+  "raw_span": [
+   1958,
+   1959
+  ],
+  "primary_toks": [
+   "−"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "update",
+   "the",
+   "model",
+   "parameters",
+   "and",
+   "weight",
+   "decay",
+   "1e"
+  ],
+  "right": [
+   "3",
+   "for",
+   "regularization",
+   ".",
+   "In",
+   "the",
+   "training",
+   "phase"
+  ],
+  "context": "update the model parameters and weight decay 1e [...] 3 for regularization . In the training phase",
+  "id": "d0014",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "content",
+  "page": 4,
+  "blocks": [
+   "3.captions.0"
+  ],
+  "bbox": [
+   0.08,
+   0.812,
+   0.911,
+   0.898
+  ],
+  "block_type": "image_caption",
+  "pos_in_block": 0.521,
+  "primary": "fη",
+  "oxr": "fn",
+  "primary_text": "fη",
+  "oxr_text": "fn",
+  "raw_span": [
+   586,
+   593
+  ],
+  "primary_toks": [
+   "fη"
+  ],
+  "oxr_toks": [
+   "fn"
+  ],
+  "left": [
+   "f2",
+   ",",
+   "f3",
+   ",",
+   ".",
+   ".",
+   ".",
+   ","
+  ],
+  "right": [
+   ")",
+   ",",
+   "and",
+   "extracted",
+   "n",
+   "feature",
+   "parameters",
+   "correspondingly"
+  ],
+  "context": "f2 , f3 , . . . , [...] ) , and extracted n feature parameters correspondingly",
+  "id": "d0015",
+  "route": "characters",
+  "by": "text layer (letters of another script)",
+  "verdict": "oxr",
+  "plan": "edit",
+  "written": true
+ },
+ {
+  "kind": "content",
+  "page": 4,
+  "blocks": [
+   "3.captions.0"
+  ],
+  "bbox": [
+   0.08,
+   0.812,
+   0.911,
+   0.898
+  ],
+  "block_type": "image_caption",
+  "pos_in_block": 0.728,
+  "primary": "m",
+  "oxr": "mn",
+  "primary_text": "m",
+  "oxr_text": "mn",
+  "raw_span": [
+   834,
+   835
+  ],
+  "primary_toks": [
+   "m"
+  ],
+  "oxr_toks": [
+   "mn"
+  ],
+  "left": [
+   "m2",
+   ",",
+   "m3",
+   ",",
+   ".",
+   ".",
+   ".",
+   ","
+  ],
+  "right": [
+   ")",
+   ".",
+   "(",
+   "D",
+   ")",
+   "The",
+   "matrices",
+   "from"
+  ],
+  "context": "m2 , m3 , . . . , [...] ) . ( D ) The matrices from",
+  "id": "d0016",
+  "route": "characters",
+  "by": "gemini page",
+  "primary_shown": "m",
+  "oxr_shown": "mn",
+  "verdict": "oxr",
+  "crop": "crops/d0016.png",
+  "crop_placed_by": "text layer",
+  "plan": "edit",
+  "written": true
+ },
+ {
+  "kind": "content",
+  "page": 5,
+  "blocks": [
+   2
+  ],
+  "bbox": [
+   0.075,
+   0.078,
+   0.486,
+   0.21
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.556,
+  "primary": "twosided",
+  "oxr": "two - sided",
+  "primary_text": "twosided",
+  "oxr_text": "two-sided",
+  "raw_span": [
+   306,
+   314
+  ],
+  "primary_toks": [
+   "twosided"
+  ],
+  "oxr_toks": [
+   "two",
+   "-",
+   "sided"
+  ],
+  "left": [
+   "the",
+   "model",
+   "performance",
+   ".",
+   "All",
+   "the",
+   "statistics",
+   "were"
+  ],
+  "right": [
+   ",",
+   "and",
+   "a",
+   "p",
+   "-",
+   "value",
+   "less",
+   "than"
+  ],
+  "context": "the model performance . All the statistics were [...] , and a p - value less than",
+  "id": "d0017",
+  "route": "line-break hyphen",
+  "split": "two-|sided",
+  "usage": {
+   "hyphen": 0,
+   "joined": 0
+  },
+  "by": "jev spelling",
+  "verdict": "hyphen",
+  "plan": "edit"
+ },
+ {
+  "kind": "look-alike",
+  "page": 5,
+  "blocks": [
+   5
+  ],
+  "bbox": [
+   0.075,
+   0.282,
+   0.486,
+   0.548
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.346,
+  "primary": "–",
+  "oxr": "-",
+  "primary_text": "–",
+  "oxr_text": "-",
+  "raw_span": [
+   441,
+   442
+  ],
+  "primary_toks": [
+   "–"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "age",
+   "was",
+   "57.6",
+   "years",
+   "(",
+   "range",
+   ",",
+   "26"
+  ],
+  "right": [
+   "90",
+   "years",
+   ")",
+   "for",
+   "the",
+   "training",
+   "and",
+   "validation"
+  ],
+  "context": "age was 57.6 years ( range , 26 [...] 90 years ) for the training and validation",
+  "id": "d0018",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 5,
+  "blocks": [
+   5
+  ],
+  "bbox": [
+   0.075,
+   0.282,
+   0.486,
+   0.548
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.415,
+  "primary": "–",
+  "oxr": "-",
+  "primary_text": "–",
+  "oxr_text": "-",
+  "raw_span": [
+   514,
+   515
+  ],
+  "primary_toks": [
+   "–"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "sets",
+   "and",
+   "56.7",
+   "years",
+   "(",
+   "range",
+   ",",
+   "22"
+  ],
+  "right": [
+   "87",
+   "years",
+   ")",
+   "for",
+   "the",
+   "test",
+   "set",
+   "."
+  ],
+  "context": "sets and 56.7 years ( range , 22 [...] 87 years ) for the test set .",
+  "id": "d0019",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 5,
+  "blocks": [
+   5
+  ],
+  "bbox": [
+   0.075,
+   0.282,
+   0.486,
+   0.548
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.5,
+  "primary": "–",
+  "oxr": "-",
+  "primary_text": "–",
+  "oxr_text": "-",
+  "raw_span": [
+   597,
+   598
+  ],
+  "primary_toks": [
+   "–"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "size",
+   "was",
+   "2.23",
+   "cm",
+   "(",
+   "range",
+   ",",
+   "0.5"
+  ],
+  "right": [
+   "4.5",
+   "cm",
+   ")",
+   ".",
+   "A",
+   "total",
+   "of",
+   "556"
+  ],
+  "context": "size was 2.23 cm ( range , 0.5 [...] 4.5 cm ) . A total of 556",
+  "id": "d0020",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 5,
+  "blocks": [
+   5
+  ],
+  "bbox": [
+   0.075,
+   0.282,
+   0.486,
+   0.548
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.776,
+  "primary": "−",
+  "oxr": "-",
+  "primary_text": "−",
+  "oxr_text": "-",
+  "raw_span": [
+   862,
+   863
+  ],
+  "primary_toks": [
+   "−"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "positive",
+   "lymph",
+   "nodes",
+   "(",
+   "N",
+   "+",
+   "(",
+   "1"
+  ],
+  "right": [
+   "2",
+   ")",
+   ")",
+   ",",
+   "and",
+   "193",
+   "patients",
+   "("
+  ],
+  "context": "positive lymph nodes ( N + ( 1 [...] 2 ) ) , and 193 patients (",
+  "id": "d0021",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "spacing",
+  "page": 5,
+  "blocks": [
+   7
+  ],
+  "bbox": [
+   0.513,
+   0.111,
+   0.924,
+   0.346
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.08,
+  "primary": "VGG16 BN",
+  "oxr": "VGG16BN",
+  "primary_text": "VGG16_BN",
+  "oxr_text": "VGG16BN",
+  "raw_span": [
+   93,
+   102
+  ],
+  "primary_toks": [
+   "VGG16",
+   "BN"
+  ],
+  "oxr_toks": [
+   "VGG16BN"
+  ],
+  "left": [
+   "1",
+   ".",
+   "Based",
+   "on",
+   "the",
+   "overall",
+   "analysis",
+   ","
+  ],
+  "right": [
+   "model",
+   "pre",
+   "-",
+   "trained",
+   "on",
+   "ImageNet",
+   "(",
+   "39"
+  ],
+  "context": "1 . Based on the overall analysis , [...] model pre - trained on ImageNet ( 39",
+  "id": "d0022",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "spacing",
+  "page": 5,
+  "blocks": [
+   7
+  ],
+  "bbox": [
+   0.513,
+   0.111,
+   0.924,
+   0.346
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.473,
+  "primary": "VGG16 BN",
+  "oxr": "VGG16BN",
+  "primary_text": "VGG16_BN",
+  "oxr_text": "VGG16BN",
+  "raw_span": [
+   430,
+   439
+  ],
+  "primary_toks": [
+   "VGG16",
+   "BN"
+  ],
+  "oxr_toks": [
+   "VGG16BN"
+  ],
+  "left": [
+   ")",
+   ".",
+   "Furthermore",
+   ",",
+   "considering",
+   "other",
+   "metrics",
+   ","
+  ],
+  "right": [
+   "achieved",
+   "the",
+   "best",
+   "ACC",
+   ",",
+   "SPEC",
+   ",",
+   "and"
+  ],
+  "context": ") . Furthermore , considering other metrics , [...] achieved the best ACC , SPEC , and",
+  "id": "d0023",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "spacing",
+  "page": 5,
+  "blocks": [
+   7
+  ],
+  "bbox": [
+   0.513,
+   0.111,
+   0.924,
+   0.346
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.557,
+  "primary": "VGG16 BN",
+  "oxr": "VGG16BN",
+  "primary_text": "VGG16_BN",
+  "oxr_text": "VGG16BN",
+  "raw_span": [
+   509,
+   518
+  ],
+  "primary_toks": [
+   "VGG16",
+   "BN"
+  ],
+  "oxr_toks": [
+   "VGG16BN"
+  ],
+  "left": [
+   "and",
+   "PPV",
+   "in",
+   "the",
+   "independent",
+   "test",
+   "cohort",
+   "."
+  ],
+  "right": [
+   "consisted",
+   "of",
+   "(",
+   "convolution",
+   "layer",
+   ",",
+   "batch",
+   "normalization"
+  ],
+  "context": "and PPV in the independent test cohort . [...] consisted of ( convolution layer , batch normalization",
+  "id": "d0024",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "spacing",
+  "page": 5,
+  "blocks": [
+   7
+  ],
+  "bbox": [
+   0.513,
+   0.111,
+   0.924,
+   0.346
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.896,
+  "primary": "VGG16 BN",
+  "oxr": "VGG16BN",
+  "primary_text": "VGG16_BN",
+  "oxr_text": "VGG16BN",
+  "raw_span": [
+   862,
+   871
+  ],
+  "primary_toks": [
+   "VGG16",
+   "BN"
+  ],
+  "oxr_toks": [
+   "VGG16BN"
+  ],
+  "left": [
+   "adaptive",
+   "average",
+   "pooling",
+   "layer",
+   "at",
+   "the",
+   "end",
+   "of"
+  ],
+  "right": [
+   "for",
+   "obtaining",
+   "features",
+   "with",
+   "a",
+   "fixed",
+   "size",
+   "."
+  ],
+  "context": "adaptive average pooling layer at the end of [...] for obtaining features with a fixed size .",
+  "id": "d0025",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "spacing",
+  "page": 5,
+  "blocks": [
+   7
+  ],
+  "bbox": [
+   0.513,
+   0.111,
+   0.924,
+   0.346
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.96,
+  "primary": "VGG16 BN",
+  "oxr": "VGG16BN",
+  "primary_text": "VGG16_BN",
+  "oxr_text": "VGG16BN",
+  "raw_span": [
+   929,
+   938
+  ],
+  "primary_toks": [
+   "VGG16",
+   "BN"
+  ],
+  "oxr_toks": [
+   "VGG16BN"
+  ],
+  "left": [
+   "with",
+   "a",
+   "fixed",
+   "size",
+   ".",
+   "The",
+   "details",
+   "of"
+  ],
+  "right": [
+   "are",
+   "described",
+   "in",
+   "Supplementary",
+   "Table",
+   "2",
+   ".",
+   "Predictive"
+  ],
+  "context": "with a fixed size . The details of [...] are described in Supplementary Table 2 . Predictive",
+  "id": "d0026",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 6,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.071,
+   0.151,
+   0.487,
+   0.239
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.188,
+  "primary": "−",
+  "oxr": "-",
+  "primary_text": "−",
+  "oxr_text": "-",
+  "raw_span": [
+   61,
+   62
+  ],
+  "primary_toks": [
+   "−"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "low",
+   "metastatic",
+   "potential",
+   "(",
+   "N",
+   "+",
+   "(",
+   "1"
+  ],
+  "right": [
+   "2",
+   ")",
+   ")",
+   "and",
+   "high",
+   "metastatic",
+   "potential",
+   "("
+  ],
+  "context": "low metastatic potential ( N + ( 1 [...] 2 ) ) and high metastatic potential (",
+  "id": "d0027",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 6,
+  "blocks": [
+   5
+  ],
+  "bbox": [
+   0.509,
+   0.077,
+   0.9,
+   0.143
+  ],
+  "block_type": "paragraph_title",
+  "pos_in_block": 0.7,
+  "primary": "-",
+  "oxr": "–",
+  "primary_text": "-",
+  "oxr_text": "–",
+  "raw_span": [
+   137,
+   138
+  ],
+  "primary_toks": [
+   "-"
+  ],
+  "oxr_toks": [
+   "–"
+  ],
+  "left": [
+   "Model",
+   "Among",
+   "N0",
+   ",",
+   "N",
+   "+",
+   "(",
+   "1"
+  ],
+  "right": [
+   "2",
+   ")",
+   "and",
+   "N",
+   "+",
+   "(",
+   "≥",
+   "3"
+  ],
+  "context": "Model Among N0 , N + ( 1 [...] 2 ) and N + ( ≥ 3",
+  "id": "d0028",
+  "route": "form only",
+  "verdict": "no action",
+  "by": "look-alikes the text layer does not decide",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 6,
+  "blocks": [
+   6
+  ],
+  "bbox": [
+   0.508,
+   0.15,
+   0.927,
+   0.285
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.47,
+  "primary": "−",
+  "oxr": "-",
+  "primary_text": "−",
+  "oxr_text": "-",
+  "raw_span": [
+   282,
+   283
+  ],
+  "primary_toks": [
+   "−"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "0.556",
+   "and",
+   "0.400",
+   "in",
+   "N",
+   "+",
+   "(",
+   "1"
+  ],
+  "right": [
+   "2",
+   ")",
+   ";",
+   "and",
+   "there",
+   "existed",
+   "the",
+   "precision"
+  ],
+  "context": "0.556 and 0.400 in N + ( 1 [...] 2 ) ; and there existed the precision",
+  "id": "d0029",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "content",
+  "page": 6,
+  "blocks": [
+   "7.footnotes.1"
+  ],
+  "bbox": [
+   0.074,
+   0.494,
+   0.925,
+   0.528
+  ],
+  "block_type": "table_footnote",
+  "pos_in_block": 0.573,
+  "primary": "270",
+  "oxr": "210",
+  "primary_text": "270",
+  "oxr_text": "210",
+  "raw_span": [
+   239,
+   244
+  ],
+  "primary_toks": [
+   "270"
+  ],
+  "oxr_toks": [
+   "210"
+  ],
+  "left": [
+   ";",
+   "V",
+   ",",
+   "validation",
+   "cohort",
+   "(",
+   "n",
+   "="
+  ],
+  "right": [
+   ")",
+   ";",
+   "1",
+   "-",
+   "T",
+   ",",
+   "independent",
+   "test"
+  ],
+  "context": "; V , validation cohort ( n = [...] ) ; 1 - T , independent test",
+  "id": "d0030",
+  "route": "characters",
+  "by": "gemini page",
+  "primary_shown": "270",
+  "oxr_shown": "210",
+  "verdict": "oxr",
+  "crop": "crops/d0030.png",
+  "crop_placed_by": "text layer",
+  "plan": "edit",
+  "written": true
+ },
+ {
+  "kind": "look-alike",
+  "page": 6,
+  "blocks": [
+   "7.footnotes.1"
+  ],
+  "bbox": [
+   0.074,
+   0.494,
+   0.925,
+   0.528
+  ],
+  "block_type": "table_footnote",
+  "pos_in_block": 0.607,
+  "primary": "1",
+  "oxr": "I",
+  "primary_text": "1",
+  "oxr_text": "I",
+  "raw_span": [
+   249,
+   250
+  ],
+  "primary_toks": [
+   "1"
+  ],
+  "oxr_toks": [
+   "I"
+  ],
+  "left": [
+   "validation",
+   "cohort",
+   "(",
+   "n",
+   "=",
+   "270",
+   ")",
+   ";"
+  ],
+  "right": [
+   "-",
+   "T",
+   ",",
+   "independent",
+   "test",
+   "cohort",
+   "(",
+   "n"
+  ],
+  "context": "validation cohort ( n = 270 ) ; [...] - T , independent test cohort ( n",
+  "id": "d0031",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "oxr",
+  "plan": "edit",
+  "written": true
+ },
+ {
+  "kind": "content",
+  "page": 6,
+  "blocks": [
+   "7.footnotes.1"
+  ],
+  "bbox": [
+   0.074,
+   0.494,
+   0.925,
+   0.528
+  ],
+  "block_type": "table_footnote",
+  "pos_in_block": 0.719,
+  "primary": "278",
+  "oxr": "218",
+  "primary_text": "278",
+  "oxr_text": "218",
+  "raw_span": [
+   289,
+   294
+  ],
+  "primary_toks": [
+   "278"
+  ],
+  "oxr_toks": [
+   "218"
+  ],
+  "left": [
+   "T",
+   ",",
+   "independent",
+   "test",
+   "cohort",
+   "(",
+   "n",
+   "="
+  ],
+  "right": [
+   ")",
+   ";",
+   "ALN",
+   ",",
+   "axillary",
+   "lymph",
+   "node",
+   ";"
+  ],
+  "context": "T , independent test cohort ( n = [...] ) ; ALN , axillary lymph node ;",
+  "id": "d0032",
+  "route": "characters",
+  "by": "jev (exactly printed)",
+  "primary_shown": "278",
+  "oxr_shown": "218",
+  "verdict": "oxr",
+  "crop": "crops/d0032.png",
+  "crop_placed_by": "text layer",
+  "plan": "edit",
+  "written": true
+ },
+ {
+  "kind": "content",
+  "page": 6,
+  "blocks": [
+   "7.footnotes.2"
+  ],
+  "bbox": [
+   0.074,
+   0.529,
+   0.538,
+   0.54
+  ],
+  "block_type": "table_footnote",
+  "pos_in_block": 0.0,
+  "primary": "a Indicates",
+  "oxr": "8Indicates",
+  "primary_text": "a Indicates",
+  "oxr_text": "8Indicates",
+  "raw_span": [
+   5,
+   21
+  ],
+  "primary_toks": [
+   "a",
+   "Indicates"
+  ],
+  "oxr_toks": [
+   "8Indicates"
+  ],
+  "left": [
+   "-",
+   "needle",
+   "biopsy",
+   "incorporating",
+   "the",
+   "clinical",
+   "data",
+   "."
+  ],
+  "right": [
+   "p",
+   "<",
+   "0.0001",
+   ",",
+   "Delong",
+   "et",
+   "al",
+   "."
+  ],
+  "context": "- needle biopsy incorporating the clinical data . [...] p < 0.0001 , Delong et al .",
+  "id": "d0033",
+  "route": "characters",
+  "by": "jev (exactly printed)",
+  "primary_shown": "a Indicates",
+  "oxr_shown": "8Indicates",
+  "verdict": "primary",
+  "crop": "crops/d0033.png",
+  "crop_placed_by": "text layer",
+  "plan": "keep"
+ },
+ {
+  "kind": "spacing",
+  "page": 6,
+  "blocks": [
+   "7.footnotes.3"
+  ],
+  "bbox": [
+   0.074,
+   0.54,
+   0.551,
+   0.551
+  ],
+  "block_type": "table_footnote",
+  "pos_in_block": 0.0,
+  "primary": "b Indicates",
+  "oxr": "bIndicates",
+  "primary_text": "b Indicates",
+  "oxr_text": "bIndicates",
+  "raw_span": [
+   5,
+   21
+  ],
+  "primary_toks": [
+   "b",
+   "Indicates"
+  ],
+  "oxr_toks": [
+   "bIndicates"
+  ],
+  "left": [
+   "-",
+   "CNB",
+   "model",
+   "in",
+   "independent",
+   "test",
+   "cohort",
+   "."
+  ],
+  "right": [
+   "p",
+   "<",
+   "0.0001",
+   ",",
+   "Delong",
+   "et",
+   "al",
+   "."
+  ],
+  "context": "- CNB model in independent test cohort . [...] p < 0.0001 , Delong et al .",
+  "id": "d0034",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "spacing",
+  "page": 6,
+  "blocks": [
+   "7.footnotes.4"
+  ],
+  "bbox": [
+   0.074,
+   0.552,
+   0.551,
+   0.563
+  ],
+  "block_type": "table_footnote",
+  "pos_in_block": 0.0,
+  "primary": "c Indicates",
+  "oxr": "cIndicates",
+  "primary_text": "c Indicates",
+  "oxr_text": "cIndicates",
+  "raw_span": [
+   5,
+   21
+  ],
+  "primary_toks": [
+   "c",
+   "Indicates"
+  ],
+  "oxr_toks": [
+   "cIndicates"
+  ],
+  "left": [
+   "+",
+   "C",
+   "model",
+   "in",
+   "independent",
+   "test",
+   "cohort",
+   "."
+  ],
+  "right": [
+   "p",
+   "=",
+   "0.4532",
+   ",",
+   "Delong",
+   "et",
+   "al",
+   "."
+  ],
+  "context": "+ C model in independent test cohort . [...] p = 0.4532 , Delong et al .",
+  "id": "d0035",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 7,
+  "blocks": [
+   "2.captions.0"
+  ],
+  "bbox": [
+   0.08,
+   0.374,
+   0.86,
+   0.4
+  ],
+  "block_type": "chart_caption",
+  "pos_in_block": 0.636,
+  "primary": "−",
+  "oxr": "-",
+  "primary_text": "−",
+  "oxr_text": "-",
+  "raw_span": [
+   161,
+   162
+  ],
+  "primary_toks": [
+   "−"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "of",
+   "axillary",
+   "disease",
+   "(",
+   "N",
+   "+",
+   "(",
+   "1"
+  ],
+  "right": [
+   "2",
+   ")",
+   ")",
+   ",",
+   "and",
+   "heavy",
+   "metastatic",
+   "burden"
+  ],
+  "context": "of axillary disease ( N + ( 1 [...] 2 ) ) , and heavy metastatic burden",
+  "id": "d0036",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 7,
+  "blocks": [
+   4
+  ],
+  "bbox": [
+   0.075,
+   0.48,
+   0.486,
+   0.656
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.665,
+  "primary": "−",
+  "oxr": "-",
+  "primary_text": "−",
+  "oxr_text": "-",
+  "raw_span": [
+   595,
+   596
+  ],
+  "primary_toks": [
+   "−"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "ER",
+   "(",
+   "+",
+   ")",
+   "vs",
+   ".",
+   "ER",
+   "("
+  ],
+  "right": [
+   ")",
+   "(",
+   "p",
+   "=",
+   "0.125",
+   ")",
+   ",",
+   "PR"
+  ],
+  "context": "ER ( + ) vs . ER ( [...] ) ( p = 0.125 ) , PR",
+  "id": "d0037",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 7,
+  "blocks": [
+   4
+  ],
+  "bbox": [
+   0.075,
+   0.48,
+   0.486,
+   0.656
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.751,
+  "primary": "−",
+  "oxr": "-",
+  "primary_text": "−",
+  "oxr_text": "-",
+  "raw_span": [
+   624,
+   625
+  ],
+  "primary_toks": [
+   "−"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "PR",
+   "(",
+   "+",
+   ")",
+   "vs",
+   ".",
+   "PR",
+   "("
+  ],
+  "right": [
+   ")",
+   "(",
+   "p",
+   "=",
+   "0.659",
+   ")",
+   ",",
+   "HER"
+  ],
+  "context": "PR ( + ) vs . PR ( [...] ) ( p = 0.659 ) , HER",
+  "id": "d0038",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 7,
+  "blocks": [
+   4
+  ],
+  "bbox": [
+   0.075,
+   0.48,
+   0.486,
+   0.656
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.859,
+  "primary": "−",
+  "oxr": "-",
+  "primary_text": "−",
+  "oxr_text": "-",
+  "raw_span": [
+   659,
+   660
+  ],
+  "primary_toks": [
+   "−"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "+",
+   ")",
+   "vs",
+   ".",
+   "HER",
+   "-",
+   "2",
+   "("
+  ],
+  "right": [
+   ")",
+   "(",
+   "p",
+   "=",
+   "0.524",
+   ")",
+   ",",
+   "and"
+  ],
+  "context": "+ ) vs . HER - 2 ( [...] ) ( p = 0.524 ) , and",
+  "id": "d0039",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "spacing",
+  "page": 8,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.071,
+   0.656,
+   0.488,
+   0.877
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.057,
+  "primary": "7 , 9",
+  "oxr": "7,9",
+  "primary_text": "7, 9",
+  "oxr_text": "7,9",
+  "raw_span": [
+   78,
+   82
+  ],
+  "primary_toks": [
+   "7",
+   ",",
+   "9"
+  ],
+  "oxr_toks": [
+   "7,9"
+  ],
+  "left": [
+   "unlike",
+   "other",
+   "combined",
+   "models",
+   "incorporating",
+   "clinical",
+   "data",
+   "("
+  ],
+  "right": [
+   ")",
+   ",",
+   "the",
+   "DL",
+   "-",
+   "CNB",
+   "+",
+   "C"
+  ],
+  "context": "unlike other combined models incorporating clinical data ( [...] ) , the DL - CNB + C",
+  "id": "d0040",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "markup",
+  "page": 8,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.071,
+   0.656,
+   0.488,
+   0.877
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.275,
+  "primary": "’",
+  "oxr": "'",
+  "primary_text": "’",
+  "oxr_text": "'",
+  "raw_span": [
+   292,
+   293
+  ],
+  "primary_toks": [
+   "’"
+  ],
+  "oxr_toks": [
+   "'"
+  ],
+  "left": [
+   ",",
+   "during",
+   "the",
+   "subgroup",
+   "analysis",
+   "stratified",
+   "by",
+   "patient"
+  ],
+  "right": [
+   "s",
+   "age",
+   ",",
+   "our",
+   "DL",
+   "-",
+   "CNB",
+   "+"
+  ],
+  "context": ", during the subgroup analysis stratified by patient [...] s age , our DL - CNB +",
+  "id": "d0041",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 8,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.071,
+   0.656,
+   0.488,
+   0.877
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.559,
+  "primary": "−",
+  "oxr": "-",
+  "primary_text": "−",
+  "oxr_text": "-",
+  "raw_span": [
+   566,
+   567
+  ],
+  "primary_toks": [
+   "−"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "ability",
+   "between",
+   "N0",
+   "and",
+   "N",
+   "+",
+   "(",
+   "1"
+  ],
+  "right": [
+   "2",
+   ")",
+   ",",
+   "and",
+   "between",
+   "N0",
+   "and",
+   "N"
+  ],
+  "context": "ability between N0 and N + ( 1 [...] 2 ) , and between N0 and N",
+  "id": "d0042",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "content",
+  "page": 9,
+  "blocks": [
+   5
+  ],
+  "bbox": [
+   0.075,
+   0.493,
+   0.486,
+   0.597
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.833,
+  "primary": "Estained",
+  "oxr": "E - stained",
+  "primary_text": "Estained",
+  "oxr_text": "E-stained",
+  "raw_span": [
+   299,
+   307
+  ],
+  "primary_toks": [
+   "Estained"
+  ],
+  "oxr_toks": [
+   "E",
+   "-",
+   "stained"
+  ],
+  "left": [
+   "surgery",
+   "based",
+   "on",
+   "the",
+   "widely",
+   "collected",
+   "H",
+   "&"
+  ],
+  "right": [
+   "histopathology",
+   "slides",
+   ",",
+   "thereby",
+   "contributing",
+   "to",
+   "precision",
+   "oncology"
+  ],
+  "context": "surgery based on the widely collected H & [...] histopathology slides , thereby contributing to precision oncology",
+  "id": "d0043",
+  "route": "characters",
+  "by": "gemini page",
+  "primary_shown": "Estained",
+  "oxr_shown": "E-stained",
+  "verdict": "neither",
+  "crop": "crops/d0043.png",
+  "crop_placed_by": "text layer",
+  "plan": "open: page reading not settled (neither)"
+ },
+ {
+  "kind": "look-alike",
+  "page": 9,
+  "blocks": [
+   7
+  ],
+  "bbox": [
+   0.076,
+   0.643,
+   0.491,
+   0.906
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.445,
+  "primary": "–",
+  "oxr": "-",
+  "primary_text": "–",
+  "oxr_text": "-",
+  "raw_span": [
+   681,
+   682
+  ],
+  "primary_toks": [
+   "–"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "2008",
+   ")",
+   "15",
+   "(",
+   "9",
+   ")",
+   ":",
+   "2533"
+  ],
+  "right": [
+   "41",
+   ".",
+   "doi",
+   ":",
+   "10.1245",
+   "/",
+   "s10434",
+   "-"
+  ],
+  "context": "2008 ) 15 ( 9 ) : 2533 [...] 41 . doi : 10.1245 / s10434 -",
+  "id": "d0044",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 9,
+  "blocks": [
+   7
+  ],
+  "bbox": [
+   0.076,
+   0.643,
+   0.491,
+   0.906
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.833,
+  "primary": "Hindie ́",
+  "oxr": "Hindié",
+  "primary_text": "Hindié",
+  "oxr_text": "Hindié",
+  "raw_span": [
+   1378,
+   1385
+  ],
+  "primary_toks": [
+   "Hindie",
+   "́"
+  ],
+  "oxr_toks": [
+   "Hindié"
+  ],
+  "left": [
+   ".",
+   "doi",
+   ":",
+   "10.1097",
+   "/",
+   "RLU.0000000000000985",
+   "6",
+   "."
+  ],
+  "right": [
+   "E",
+   ",",
+   "Groheux",
+   "D",
+   ",",
+   "Brenot",
+   "-",
+   "Rossi"
+  ],
+  "context": ". doi : 10.1097 / RLU.0000000000000985 6 . [...] E , Groheux D , Brenot - Rossi",
+  "id": "d0045",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "oxr",
+  "plan": "edit",
+  "written": true
+ },
+ {
+  "kind": "look-alike",
+  "page": 9,
+  "blocks": [
+   7
+  ],
+  "bbox": [
+   0.076,
+   0.643,
+   0.491,
+   0.906
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.891,
+  "primary": "Espie ́",
+  "oxr": "Espié",
+  "primary_text": "Espié",
+  "oxr_text": "Espié",
+  "raw_span": [
+   1440,
+   1446
+  ],
+  "primary_toks": [
+   "Espie",
+   "́"
+  ],
+  "oxr_toks": [
+   "Espié"
+  ],
+  "left": [
+   "Rubello",
+   "D",
+   ",",
+   "Moretti",
+   "J",
+   "-",
+   "L",
+   ","
+  ],
+  "right": [
+   "M",
+   ".",
+   "The",
+   "Sentinel",
+   "Node",
+   "Procedure",
+   "in",
+   "Breast"
+  ],
+  "context": "Rubello D , Moretti J - L , [...] M . The Sentinel Node Procedure in Breast",
+  "id": "d0046",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "oxr",
+  "plan": "edit",
+  "written": true
+ },
+ {
+  "kind": "look-alike",
+  "page": 9,
+  "blocks": [
+   18
+  ],
+  "bbox": [
+   0.508,
+   0.618,
+   0.93,
+   0.906
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.157,
+  "primary": "–",
+  "oxr": "-",
+  "primary_text": "–",
+  "oxr_text": "-",
+  "raw_span": [
+   284,
+   285
+  ],
+  "primary_toks": [
+   "–"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "2019",
+   ")",
+   "25",
+   "(",
+   "21",
+   ")",
+   ":",
+   "6368"
+  ],
+  "right": [
+   "81",
+   ".",
+   "doi",
+   ":",
+   "10.1158",
+   "/",
+   "1078",
+   "-"
+  ],
+  "context": "2019 ) 25 ( 21 ) : 6368 [...] 81 . doi : 10.1158 / 1078 -",
+  "id": "d0047",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 9,
+  "blocks": [
+   18
+  ],
+  "bbox": [
+   0.508,
+   0.618,
+   0.93,
+   0.906
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.851,
+  "primary": "Wile ́ n",
+  "oxr": "Wilén",
+  "primary_text": "Wilén",
+  "oxr_text": "Wilén",
+  "raw_span": [
+   1507,
+   1513
+  ],
+  "primary_toks": [
+   "Wile",
+   "́",
+   "n"
+  ],
+  "oxr_toks": [
+   "Wilén"
+  ],
+  "left": [
+   "F",
+   ",",
+   "Burlutskiy",
+   "N",
+   ",",
+   "Andersson",
+   "M",
+   ","
+  ],
+  "right": [
+   "LK",
+   ".",
+   "Multi",
+   "-",
+   "Resolution",
+   "Networks",
+   "for",
+   "Semantic"
+  ],
+  "context": "F , Burlutskiy N , Andersson M , [...] LK . Multi - Resolution Networks for Semantic",
+  "id": "d0048",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "oxr",
+  "plan": "edit",
+  "written": true
+ },
+ {
+  "kind": "reading order",
+  "page": 9,
+  "blocks": [
+   18
+  ],
+  "bbox": [
+   0.508,
+   0.618,
+   0.93,
+   0.906
+  ],
+  "block_type": "list",
+  "pos_in_block": 1.0,
+  "primary": "2",
+  "oxr": ") : 1817 - 27 . doi : 10.1158 / 1078 - 0432 . CCR - 18 - 1414 9 . Zheng X , Yao Z , Huang Y , Yu Y , Wang Y , Liu Y , et al . Deep Learning Radiomics Can Predict Axillary Lymph Node Status in Early - Stage Breast Cancer . Nat Commun ( 2020 ) 11 ( 1 ) : 1236 . doi : 10.1038 / s41467 - 020 - 15027 - z 10 . Luo J , Ning Z , Zhang S , Feng Q , Zhang Y . Bag of Deep Features for Preoperative Prediction of Sentinel Lymph Node Metastasis in Breast Cancer . Phys Med Biol ( 2018 ) 63 ( 24 ) : 245014 . doi : 10.1088 / 1361 - 6560 / aaf241 11 . Campanella G , Hanna MG , Geneslaw L , Miraflor A , Werneck Krauss Silva V , Busam KJ , et al . Clinical - Grade Computational Pathology Using Weakly Supervised Deep Learning on Whole Slide Images . Nat Med ( 2019 ) 25 ( 8 ) : 1301 - 9 . doi : 10.1038 / s41591 - 019 - 0508 - 1 12 . Gu F , Burlutskiy N , Andersson M , Wilen LK . Multi - Resolution Networks for Semantic Segmentation in Whole Slide Images . In : Computational Pathology and Ophthalmic Medical Image Analysis ; 2018 . Cham , Switzerland : Springer International Publishing ( 2018 ) . p . 11 - 8 . doi : 10.1007 / 978 - 3 - 030 - 00949 - 62 13 . Gu F , Burlutskiy N , Andersson M , Wilen LK . Multi - Resolution Networks for Semantic Segmentation in Whole Slide Images . In : Computational Pathology and Ophthalmic Medical Image Analysis ; 2018 . Cham , Switzerland : Springer International Publishing ( 2018 ) . p . 11 - 8 . doi : 10.1007 / 978 - 3 - 030 - 00949 - 62",
+  "primary_text": "2",
+  "oxr_text": "):1817-27. doi: 10.1158/1078-0432.CCR-18-1414\n9. Zheng X, Yao Z, Huang Y, Yu Y, Wang Y, Liu Y, et al. Deep Learning Radiomics Can Predict Axillary Lymph Node Status in Early-Stage Breast Cancer. Nat Commun (2020) 11(1):1236. doi: 10.1038/s41467-020-15027-z\n10. Luo J, Ning Z, Zhang S, Feng Q, Zhang Y. Bag of Deep Features for Preoperative Prediction of Sentinel Lymph Node Metastasis in Breast Cancer. Phys Med Biol (2018) 63(24):245014. doi: 10.1088/1361-6560/aaf241\n11. Campanella G, Hanna MG, Geneslaw L, Miraflor A, Werneck Krauss Silva V, Busam KJ, et al. Clinical-Grade Computational Pathology Using Weakly Supervised Deep Learning on Whole Slide Images. Nat Med (2019) 25(8):1301-9. doi: 10.1038/s41591-019-0508-1\n12. Gu F, Burlutskiy N, Andersson M, Wilen LK. Multi-Resolution Networks for Semantic Segmentation in Whole Slide Images. In: Computational Pathology and Ophthalmic Medical Image Analysis; 2018. Cham, Switzerland: Springer International Publishing (2018). p. 11-8. doi: 10.1007/978-3-030-00949-62\n13. Gu F, Burlutskiy N, Andersson M, Wilen LK. Multi-Resolution Networks for Semantic Segmentation in Whole Slide Images. In: Computational Pathology and Ophthalmic Medical Image Analysis; 2018. Cham, Switzerland: Springer International Publishing (2018). p. 11-8. doi: 10.1007/978-3-030-00949-62",
+  "raw_span": [
+   1769,
+   1770
+  ],
+  "primary_toks": [
+   "2"
+  ],
+  "oxr_toks": [
+   ")",
+   ":",
+   "1817",
+   "-",
+   "27",
+   ".",
+   "doi",
+   ":",
+   "10.1158",
+   "/",
+   "1078",
+   "-",
+   "0432",
+   ".",
+   "CCR",
+   "-",
+   "18",
+   "-",
+   "1414",
+   "9",
+   ".",
+   "Zheng",
+   "X",
+   ",",
+   "Yao",
+   "Z",
+   ",",
+   "Huang",
+   "Y",
+   ",",
+   "Yu",
+   "Y",
+   ",",
+   "Wang",
+   "Y",
+   ",",
+   "Liu",
+   "Y",
+   ",",
+   "et",
+   "al",
+   ".",
+   "Deep",
+   "Learning",
+   "Radiomics",
+   "Can",
+   "Predict",
+   "Axillary",
+   "Lymph",
+   "Node",
+   "Status",
+   "in",
+   "Early",
+   "-",
+   "Stage",
+   "Breast",
+   "Cancer",
+   ".",
+   "Nat",
+   "Commun",
+   "(",
+   "2020",
+   ")",
+   "11",
+   "(",
+   "1",
+   ")",
+   ":",
+   "1236",
+   ".",
+   "doi",
+   ":",
+   "10.1038",
+   "/",
+   "s41467",
+   "-",
+   "020",
+   "-",
+   "15027",
+   "-",
+   "z",
+   "10",
+   ".",
+   "Luo",
+   "J",
+   ",",
+   "Ning",
+   "Z",
+   ",",
+   "Zhang",
+   "S",
+   ",",
+   "Feng",
+   "Q",
+   ",",
+   "Zhang",
+   "Y",
+   ".",
+   "Bag",
+   "of",
+   "Deep",
+   "Features",
+   "for",
+   "Preoperative",
+   "Prediction",
+   "of",
+   "Sentinel",
+   "Lymph",
+   "Node",
+   "Metastasis",
+   "in",
+   "Breast",
+   "Cancer",
+   ".",
+   "Phys",
+   "Med",
+   "Biol",
+   "(",
+   "2018",
+   ")",
+   "63",
+   "(",
+   "24",
+   ")",
+   ":",
+   "245014",
+   ".",
+   "doi",
+   ":",
+   "10.1088",
+   "/",
+   "1361",
+   "-",
+   "6560",
+   "/",
+   "aaf241",
+   "11",
+   ".",
+   "Campanella",
+   "G",
+   ",",
+   "Hanna",
+   "MG",
+   ",",
+   "Geneslaw",
+   "L",
+   ",",
+   "Miraflor",
+   "A",
+   ",",
+   "Werneck",
+   "Krauss",
+   "Silva",
+   "V",
+   ",",
+   "Busam",
+   "KJ",
+   ",",
+   "et",
+   "al",
+   ".",
+   "Clinical",
+   "-",
+   "Grade",
+   "Computational",
+   "Pathology",
+   "Using",
+   "Weakly",
+   "Supervised",
+   "Deep",
+   "Learning",
+   "on",
+   "Whole",
+   "Slide",
+   "Images",
+   ".",
+   "Nat",
+   "Med",
+   "(",
+   "2019",
+   ")",
+   "25",
+   "(",
+   "8",
+   ")",
+   ":",
+   "1301",
+   "-",
+   "9",
+   ".",
+   "doi",
+   ":",
+   "10.1038",
+   "/",
+   "s41591",
+   "-",
+   "019",
+   "-",
+   "0508",
+   "-",
+   "1",
+   "12",
+   ".",
+   "Gu",
+   "F",
+   ",",
+   "Burlutskiy",
+   "N",
+   ",",
+   "Andersson",
+   "M",
+   ",",
+   "Wilen",
+   "LK",
+   ".",
+   "Multi",
+   "-",
+   "Resolution",
+   "Networks",
+   "for",
+   "Semantic",
+   "Segmentation",
+   "in",
+   "Whole",
+   "Slide",
+   "Images",
+   ".",
+   "In",
+   ":",
+   "Computational",
+   "Pathology",
+   "and",
+   "Ophthalmic",
+   "Medical",
+   "Image",
+   "Analysis",
+   ";",
+   "2018",
+   ".",
+   "Cham",
+   ",",
+   "Switzerland",
+   ":",
+   "Springer",
+   "International",
+   "Publishing",
+   "(",
+   "2018",
+   ")",
+   ".",
+   "p",
+   ".",
+   "11",
+   "-",
+   "8",
+   ".",
+   "doi",
+   ":",
+   "10.1007",
+   "/",
+   "978",
+   "-",
+   "3",
+   "-",
+   "030",
+   "-",
+   "00949",
+   "-",
+   "62",
+   "13",
+   ".",
+   "Gu",
+   "F",
+   ",",
+   "Burlutskiy",
+   "N",
+   ",",
+   "Andersson",
+   "M",
+   ",",
+   "Wilen",
+   "LK",
+   ".",
+   "Multi",
+   "-",
+   "Resolution",
+   "Networks",
+   "for",
+   "Semantic",
+   "Segmentation",
+   "in",
+   "Whole",
+   "Slide",
+   "Images",
+   ".",
+   "In",
+   ":",
+   "Computational",
+   "Pathology",
+   "and",
+   "Ophthalmic",
+   "Medical",
+   "Image",
+   "Analysis",
+   ";",
+   "2018",
+   ".",
+   "Cham",
+   ",",
+   "Switzerland",
+   ":",
+   "Springer",
+   "International",
+   "Publishing",
+   "(",
+   "2018",
+   ")",
+   ".",
+   "p",
+   ".",
+   "11",
+   "-",
+   "8",
+   ".",
+   "doi",
+   ":",
+   "10.1007",
+   "/",
+   "978",
+   "-",
+   "3",
+   "-",
+   "030",
+   "-",
+   "00949",
+   "-",
+   "62"
+  ],
+  "left": [
+   "-",
+   "3",
+   "-",
+   "030",
+   "-",
+   "00949",
+   "-",
+   "6"
+  ],
+  "right": [],
+  "context": "- 3 - 030 - 00949 - 6 [...] ",
+  "id": "d0049",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 10,
+  "blocks": [
+   2
+  ],
+  "bbox": [
+   0.073,
+   0.077,
+   0.489,
+   0.905
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.394,
+  "primary": "–",
+  "oxr": "-",
+  "primary_text": "–",
+  "oxr_text": "-",
+  "raw_span": [
+   1899,
+   1900
+  ],
+  "primary_toks": [
+   "–"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "2021",
+   ")",
+   "24",
+   "(",
+   "4",
+   ")",
+   ":",
+   "868"
+  ],
+  "right": [
+   "77",
+   ".",
+   "doi",
+   ":",
+   "10.1007",
+   "/",
+   "s10120",
+   "-"
+  ],
+  "context": "2021 ) 24 ( 4 ) : 868 [...] 77 . doi : 10.1007 / s10120 -",
+  "id": "d0050",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 10,
+  "blocks": [
+   2
+  ],
+  "bbox": [
+   0.073,
+   0.077,
+   0.489,
+   0.905
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.472,
+  "primary": "–",
+  "oxr": "-",
+  "primary_text": "–",
+  "oxr_text": "-",
+  "raw_span": [
+   2279,
+   2280
+  ],
+  "primary_toks": [
+   "–"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "IEEE",
+   "(",
+   "2020",
+   ")",
+   ".",
+   "p",
+   ".",
+   "4837"
+  ],
+  "right": [
+   "46",
+   ".",
+   "doi",
+   ":",
+   "10.1109",
+   "/",
+   "CVPR42600.2020.00489",
+   "21"
+  ],
+  "context": "IEEE ( 2020 ) . p . 4837 [...] 46 . doi : 10.1109 / CVPR42600.2020.00489 21",
+  "id": "d0051",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 10,
+  "blocks": [
+   2
+  ],
+  "bbox": [
+   0.073,
+   0.077,
+   0.489,
+   0.905
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.534,
+  "primary": "–",
+  "oxr": "-",
+  "primary_text": "–",
+  "oxr_text": "-",
+  "raw_span": [
+   2589,
+   2590
+  ],
+  "primary_toks": [
+   "–"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "2018",
+   ")",
+   "42",
+   "(",
+   "12",
+   ")",
+   ":",
+   "1636"
+  ],
+  "right": [
+   "46",
+   ".",
+   "doi",
+   ":",
+   "10.1097",
+   "/",
+   "PAS.0000000000001151",
+   "22"
+  ],
+  "context": "2018 ) 42 ( 12 ) : 1636 [...] 46 . doi : 10.1097 / PAS.0000000000001151 22",
+  "id": "d0052",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "spacing",
+  "page": 10,
+  "blocks": [
+   2
+  ],
+  "bbox": [
+   0.073,
+   0.077,
+   0.489,
+   0.905
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.82,
+  "primary": "2 29",
+  "oxr": "229",
+  "primary_text": "2_29",
+  "oxr_text": "229",
+  "raw_span": [
+   4123,
+   4128
+  ],
+  "primary_toks": [
+   "2",
+   "29"
+  ],
+  "oxr_toks": [
+   "229"
+  ],
+  "left": [
+   "978",
+   "-",
+   "3",
+   "-",
+   "030",
+   "-",
+   "00934",
+   "-"
+  ],
+  "right": [
+   "27",
+   ".",
+   "Krizhevsky",
+   "A",
+   ",",
+   "Sutskever",
+   "I",
+   ","
+  ],
+  "context": "978 - 3 - 030 - 00934 - [...] 27 . Krizhevsky A , Sutskever I ,",
+  "id": "d0053",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 10,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.509,
+   0.076,
+   0.928,
+   0.81
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.145,
+  "primary": "–",
+  "oxr": "-",
+  "primary_text": "–",
+  "oxr_text": "-",
+  "raw_span": [
+   650,
+   651
+  ],
+  "primary_toks": [
+   "–"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "IEEE",
+   "(",
+   "2015",
+   ")",
+   ".",
+   "p",
+   ".",
+   "1713"
+  ],
+  "right": [
+   "21",
+   ".",
+   "doi",
+   ":",
+   "10.1109",
+   "/",
+   "CVPR.2015.7298780",
+   "34"
+  ],
+  "context": "IEEE ( 2015 ) . p . 1713 [...] 21 . doi : 10.1109 / CVPR.2015.7298780 34",
+  "id": "d0054",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "spacing",
+  "page": 10,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.509,
+   0.076,
+   0.928,
+   0.81
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.22,
+  "primary": "7 69",
+  "oxr": "769",
+  "primary_text": "7_69",
+  "oxr_text": "769",
+  "raw_span": [
+   1026,
+   1031
+  ],
+  "primary_toks": [
+   "7",
+   "69"
+  ],
+  "oxr_toks": [
+   "769"
+  ],
+  "left": [
+   "978",
+   "-",
+   "3",
+   "-",
+   "319",
+   "-",
+   "66179",
+   "-"
+  ],
+  "right": [
+   "35",
+   ".",
+   "Loshchilov",
+   "I",
+   ",",
+   "Hutter",
+   "F",
+   "."
+  ],
+  "context": "978 - 3 - 319 - 66179 - [...] 35 . Loshchilov I , Hutter F .",
+  "id": "d0055",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 10,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.509,
+   0.076,
+   0.928,
+   0.81
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.319,
+  "primary": "–",
+  "oxr": "-",
+  "primary_text": "–",
+  "oxr_text": "-",
+  "raw_span": [
+   1502,
+   1503
+  ],
+  "primary_toks": [
+   "–"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "2016",
+   ")",
+   "142",
+   "(",
+   "7",
+   ")",
+   ":",
+   "1475"
+  ],
+  "right": [
+   "86",
+   ".",
+   "doi",
+   ":",
+   "10.1007",
+   "/",
+   "s00432",
+   "-"
+  ],
+  "context": "2016 ) 142 ( 7 ) : 1475 [...] 86 . doi : 10.1007 / s00432 -",
+  "id": "d0056",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "look-alike",
+  "page": 10,
+  "blocks": [
+   3
+  ],
+  "bbox": [
+   0.509,
+   0.076,
+   0.928,
+   0.81
+  ],
+  "block_type": "list",
+  "pos_in_block": 0.429,
+  "primary": "–",
+  "oxr": "-",
+  "primary_text": "–",
+  "oxr_text": "-",
+  "raw_span": [
+   2036,
+   2037
+  ],
+  "primary_toks": [
+   "–"
+  ],
+  "oxr_toks": [
+   "-"
+  ],
+  "left": [
+   "1988",
+   ")",
+   "44",
+   "(",
+   "3",
+   ")",
+   ":",
+   "837"
+  ],
+  "right": [
+   "45",
+   ".",
+   "doi",
+   ":",
+   "10.1038",
+   "/",
+   "s41591",
+   "-"
+  ],
+  "context": "1988 ) 44 ( 3 ) : 837 [...] 45 . doi : 10.1038 / s41591 -",
+  "id": "d0057",
+  "route": "characters",
+  "by": "text layer (look-alike characters)",
+  "verdict": "primary",
+  "plan": "keep"
+ },
+ {
+  "kind": "markup",
+  "page": 10,
+  "blocks": [
+   5
+  ],
+  "bbox": [
+   0.512,
+   0.87,
+   0.925,
+   0.906
+  ],
+  "block_type": "text",
+  "pos_in_block": 0.022,
+  "primary": "’",
+  "oxr": "'",
+  "primary_text": "’",
+  "oxr_text": "'",
+  "raw_span": [
+   9,
+   10
+  ],
+  "primary_toks": [
+   "’"
+  ],
+  "oxr_toks": [
+   "'"
+  ],
+  "left": [
+   "as",
+   "a",
+   "potential",
+   "conflict",
+   "of",
+   "interest",
+   ".",
+   "Publisher"
+  ],
+  "right": [
+   "s",
+   "Note",
+   ":",
+   "All",
+   "claims",
+   "expressed",
+   "in",
+   "this"
+  ],
+  "context": "as a potential conflict of interest . Publisher [...] s Note : All claims expressed in this",
+  "id": "d0058",
+  "route": "form only",
+  "verdict": "no action",
+  "plan": "keep"
+ }
+]
