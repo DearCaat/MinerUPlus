@@ -166,25 +166,53 @@ Example of an edit:
  "old": "Lu<sup>5</sup>,⇤,", "new": "Lu<sup>5</sup>,\\*,"}
 ```
 
-## Compared with other open-source parsers
+## How it compares (as of 2026-10-30)
 
-MinerUPlus is not a new reading model. It runs a reader (currently MinerU) and checks that reader's output. The
-comparison below is about what each tool **returns to the caller**, not about reading accuracy. On reading accuracy
-see [OmniDocBench](https://github.com/opendatalab/OmniDocBench), where MinerU 2.5 and PaddleOCR-VL rank near the top.
+MinerUPlus is not a reading model. It runs a reader (MinerU) and checks that reader's output. So the comparison below
+is about **what each tool tells the caller about its own output**. Reading accuracy is a different question: on
+[OmniDocBench](https://github.com/opendatalab/OmniDocBench), MinerU, PaddleOCR-VL and other VLM readers are close to
+each other near the top.
 
-| | MinerU | Marker | Docling | olmOCR | PaddleOCR-VL | **MinerUPlus** |
-|---|---|---|---|---|---|---|
-| Output checked against the PDF text layer | – | – | – | layer used as prompt input, not as a check | – | per token |
-| Second independent reading of the page | – | – | – | – | – | yes |
-| Quality signal per run | – | – | model confidence scores (layout, OCR, parse) | – | – | what was compared, corrected, not checked |
-| List of unresolved places, with page crops | – | – | – | – | – | `issues.json` |
-| Each correction recorded with its source | – | LLM mode rewrites without a record | – | – | – | `edits.json` |
-| Printed typos kept as printed | model-dependent | model-dependent | model-dependent | model-dependent | model-dependent | checked against the text layer |
-| Sections with page ranges, quote index | – | – | document tree | – | – | `sections.json`, `quote_index.json` |
+**The failure mode is known upstream.** MinerU's maintainers write that the VLM "may occasionally generate
+hallucinations" ([#4147](https://github.com/opendatalab/MinerU/issues/4147): printed "prefill" returned as
+"prefetch"). Formula characters are replaced while the text layer is right
+([#5646](https://github.com/opendatalab/MinerU/issues/5646): `LiTMO2` → `LiTiO2`). Neither issue gives the caller a
+way to tell such places apart from the rest of the output.
 
-Docling's confidence scores are the closest feature. They are the models' own confidence, averaged per page,
-and they are not checked against independent evidence. A garbled page can still be graded "good"
-([docling-studio #360](https://github.com/scub-france/docling-Studio/issues/360)).
+What current tools return besides the text:
+
+| Tool (version, date) | Uses the PDF text layer | Confidence | Self-check of the output | Unresolved places returned | Corrections recorded |
+|---|---|---|---|---|---|
+| **Open source** | | | | | |
+| [MinerU](https://github.com/opendatalab/MinerU) 4.1.2 (2026-10-29) | as the text source in the `flash` tier ([tiers](https://opendatalab.github.io/MinerU/usage/tiers/)); other tiers not documented | – | – | – | – |
+| [Docling](https://github.com/docling-project/docling) 2.145 (2026-10-29) | yes, for programmatic PDFs | per page: parse, layout, table and OCR scores from its own models ([docs](https://github.com/docling-project/docling/blob/main/docs/concepts/confidence_scores.md)) | – | – | – |
+| [Marker](https://github.com/datalab-to/marker) 2.1.0 (2026-10-29) | yes: text extracted with pdftext; tables rebuilt from the layer, low-confidence rebuilds fall back to the VLM | internal only (table fallback) | – | – | – |
+| [olmOCR](https://github.com/allenai/olmocr) 0.4.27 (2026-03-12) | v1 put layer text into the prompt ("anchor text"); "not used for new models" | – | – | – | – |
+| [PaddleOCR-VL](https://github.com/PaddlePaddle/PaddleOCR), [DeepSeek-OCR 2](https://github.com/deepseek-ai/DeepSeek-OCR), [MonkeyOCR v2](https://github.com/Yuliang-Liu/MonkeyOCR), [dots.mocr](https://github.com/rednote-hilab/dots.ocr), [OXR](https://github.com/SoMarkAI/OXR) | not documented | not documented | – | – | – |
+| **Closed** | | | | | |
+| [LlamaParse](https://developers.llamaindex.ai/llamaparse/changelog/2026-07/) | – | page-level | **yes, since 2026-07-15**: "an additional review pass" grades its own output; what it is compared against is not documented | – | – |
+| [Mistral OCR](https://docs.mistral.ai/capabilities/document_ai/basic_ocr) | – | page, block or word (`confidence_scores_granularity`) | – | – | – |
+| [Azure Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/concept/accuracy-confidence), [Google Document AI](https://docs.cloud.google.com/document-ai/docs/handle-response), [AWS Textract](https://docs.aws.amazon.com/textract/latest/APIReference/API_Block.html) | – | per word or block (0–1; Textract 0–100) | – | – | – |
+| [Reducto](https://docs.reducto.ai/parse/overview) | – | per block (e.g. `"high"`) | – | – | – |
+| **MinerUPlus** | every word checked against the layer | – (instead: what was checked, corrected, not checked) | text layer + a second, independent reader + judges on page crops | `issues.json`, each with a page crop | `checks/edits.json`, each with its source |
+
+"–" means the tool's current docs do not describe the feature; "not documented" means we could not find a statement
+either way.
+
+In short:
+
+- **Confidence scores are common**, especially in closed services. They are a model's estimate of its own reading:
+  a misread with high confidence looks the same as a correct one.
+- **Self-review has arrived** (LlamaParse, July 2026). But the documentation does not say against what the output is
+  reviewed, and the result is a score, not a list of places.
+- **We found no tool that**:
+  - checks the output against independent evidence (the PDF's own text layer and a second reader);
+  - keeps printed typos as printed instead of letting a model correct them;
+  - returns the unresolved places with page crops, so that an agent can act on them.
+
+Benchmarks are moving in the same direction. [ParseBench](https://arxiv.org/abs/2604.08538) (April 2026) scores
+parsers for AI agents on content faithfulness and visual grounding, not text similarity, and finds that "no method
+is consistently strong across all five dimensions".
 
 ## Measured so far
 
@@ -235,7 +263,7 @@ All results in this README come from this setup:
 
 | Role | Component | Public source |
 |---|---|---|
-| `primary_reader` | MinerU 4.1, tier advanced | [opendatalab/MinerU](https://github.com/opendatalab/MinerU) |
+| `primary_reader` | MinerU 4.0.12, tier advanced | [opendatalab/MinerU](https://github.com/opendatalab/MinerU) |
 | `second_reader` | OXR 1.0 | [SoMarkAI/OXR](https://github.com/SoMarkAI/OXR) |
 | `decision_judge` | d3-ultra (System One protocol) | [vllm-sr/d3-ultra](https://huggingface.co/vllm-sr/d3-ultra) |
 | `page_judge` | Gemini 3.8 Flash, thinking high | Gemini API |

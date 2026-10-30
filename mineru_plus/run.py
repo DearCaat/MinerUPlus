@@ -23,7 +23,7 @@ TOKEN = re.compile(r"[A-Za-z0-9]+(?:[.,][0-9]+)*")
 WS = re.compile(r"\s+")
 MERMAID_LABEL = re.compile(r'"([^"]*)"')
 MEASURED_WITH = {   # the setup the CALIBRATION numbers were measured with (10-28 and 10-29), per role
-    "primary_reader": {"backend": "gateway", "tool": "mineru", "tier": "advanced"},    # MinerU 4.1 V1 API
+    "primary_reader": {"backend": "gateway", "tool": "mineru", "tier": "advanced"},    # MinerU 4.0.12, V1 API
     "second_reader": {"backend": "gateway", "tool": "oxr"},
     "decision_judge": {"backend": "gateway", "model": "d3-ultra"},                    # jev
     "page_judge": {"backend": "agy", "model": "gemini-3.8-flash-high"},                # through the agy CLI

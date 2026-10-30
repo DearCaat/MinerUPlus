@@ -135,21 +135,41 @@ Figure transcriptions: 4 (figures.json), 4 moved out of full.md; 0/215 of their 
 | `checks/` | 每处不一致的处理路径、判定和依据；`edits.json`；判定器的请求和截图 |
 | `readers/` | 两个读取器的原始输出，未经改动 |
 
-## 和其他开源解析器的比较
+## 和同类产品的比较（截至 2026-10-30）
 
-MinerUPlus 不是新的识别模型。它调用一个读取器（目前是 MinerU），再核对这个读取器的输出。下表比的是各工具**交给调用方什么**，不比识别精度。识别精度请看 [OmniDocBench](https://github.com/opendatalab/OmniDocBench)，MinerU 2.5 和 PaddleOCR-VL 在上面排在前列。
+MinerUPlus 不是识别模型，它调用读取器（MinerU），再核对读取器的输出。所以下面比的是：**各工具对自己的输出告诉调用方什么**。识别精度是另一回事：在 [OmniDocBench](https://github.com/opendatalab/OmniDocBench) 上，MinerU、PaddleOCR-VL 等 VLM 读取器都在前列，彼此相差不大。
 
-| | MinerU | Marker | Docling | olmOCR | PaddleOCR-VL | **MinerUPlus** |
-|---|---|---|---|---|---|---|
-| 和 PDF 文本层核对 | – | – | – | 文本层只作为提示词的输入，不用来核对 | – | 逐词 |
-| 第二个独立读法 | – | – | – | – | – | 有 |
-| 每次运行的质量说明 | – | – | 模型置信度（版面、OCR、解析） | – | – | 比对了什么、改了什么、什么没查 |
-| 没定下的地方，附页面截图 | – | – | – | – | – | `issues.json` |
-| 每处修正都记下依据 | – | LLM 模式直接改写，不留记录 | – | – | – | `edits.json` |
-| 印刷错字按原样保留 | 取决于模型 | 取决于模型 | 取决于模型 | 取决于模型 | 取决于模型 | 和文本层核对 |
-| 带页码的章节、引文索引 | – | – | 文档树 | – | – | `sections.json`、`quote_index.json` |
+**这类错误上游也承认。** MinerU 维护者写过 VLM "may occasionally generate hallucinations"（[#4147](https://github.com/opendatalab/MinerU/issues/4147)：印的 "prefill" 输出成 "prefetch"）。还有公式里的字符被换掉、而文本层是对的（[#5646](https://github.com/opendatalab/MinerU/issues/5646)：`LiTMO2` → `LiTiO2`）。这两个 issue 都没有给调用方任何办法，把这些地方和其余输出区分开。
 
-最接近的是 Docling 的置信度分数。但它是模型自己的置信度、按页取的平均，没有拿独立证据核对过，乱码页照样可能被评为 "good"（[docling-Studio #360](https://github.com/scub-france/docling-Studio/issues/360)）。
+现有工具在文本之外还交给调用方什么：
+
+| 工具（版本，日期） | 用 PDF 文本层 | 置信度 | 自检输出 | 交还未决之处 | 记录修正 |
+|---|---|---|---|---|---|
+| **开源** | | | | | |
+| [MinerU](https://github.com/opendatalab/MinerU) 4.1.2（2026-10-29） | `flash` 档以文本层为文字来源（[tiers](https://opendatalab.github.io/MinerU/usage/tiers/)）；其他档文档未说明 | – | – | – | – |
+| [Docling](https://github.com/docling-project/docling) 2.145（2026-10-29） | 用，用于程序生成的 PDF | 每页给出解析、版面、表格、OCR 四项分数，都来自它自己的模型（[文档](https://github.com/docling-project/docling/blob/main/docs/concepts/confidence_scores.md)） | – | – | – |
+| [Marker](https://github.com/datalab-to/marker) 2.1.0（2026-10-29） | 用：用 pdftext 抽文字；表格按文本层重建，重建置信度低时回退到 VLM | 仅内部使用（表格回退） | – | – | – |
+| [olmOCR](https://github.com/allenai/olmocr) 0.4.27（2026-03-12） | v1 把文本层放进提示词（"anchor text"）；新模型"not used" | – | – | – | – |
+| [PaddleOCR-VL](https://github.com/PaddlePaddle/PaddleOCR)、[DeepSeek-OCR 2](https://github.com/deepseek-ai/DeepSeek-OCR)、[MonkeyOCR v2](https://github.com/Yuliang-Liu/MonkeyOCR)、[dots.mocr](https://github.com/rednote-hilab/dots.ocr)、[OXR](https://github.com/SoMarkAI/OXR) | 未说明 | 未说明 | – | – | – |
+| **闭源** | | | | | |
+| [LlamaParse](https://developers.llamaindex.ai/llamaparse/changelog/2026-07/) | – | 页级 | **有，2026-07-15 起**：多一轮复核给自己的输出打分；拿什么对照，文档未说明 | – | – |
+| [Mistral OCR](https://docs.mistral.ai/capabilities/document_ai/basic_ocr) | – | 页、块或词三级（`confidence_scores_granularity`） | – | – | – |
+| [Azure Document Intelligence](https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/concept/accuracy-confidence)、[Google Document AI](https://docs.cloud.google.com/document-ai/docs/handle-response)、[AWS Textract](https://docs.aws.amazon.com/textract/latest/APIReference/API_Block.html) | – | 词级或块级（0–1；Textract 为 0–100） | – | – | – |
+| [Reducto](https://docs.reducto.ai/parse/overview) | – | 块级（如 `"high"`） | – | – | – |
+| **MinerUPlus** | 每个词都和文本层核对 | –（改为说明查了什么、改了什么、什么没查） | 文本层 + 独立的第二读取器 + 判定器看页面截图 | `issues.json`，每条附页面截图 | `checks/edits.json`，每处附依据 |
+
+"–" 表示该工具现行文档里没有这项功能；"未说明" 表示我们没找到任何说法。
+
+小结：
+
+- **置信度已经很普遍**，闭源服务尤其如此。但它是模型对自己读法的估计：一个置信度很高的误读，看起来和正确的读法没有区别。
+- **自检已经出现**（LlamaParse，2026 年 7 月）。但文档没说拿什么来对照，给出的也只是分数，不是一份位置清单。
+- **我们没找到哪个工具同时做到这三点**：
+  - 拿独立证据核对输出：PDF 自带的文本层，加上第二读取器；
+  - 印刷错字按原样保留，不让模型去改；
+  - 把定不下来的地方附页面截图交还，让 agent 能直接处理。
+
+基准测试也在往这个方向走。[ParseBench](https://arxiv.org/abs/2604.08538)（2026 年 4 月）面向 AI agent，按内容忠实度和视觉定位给解析器打分，不比文本相似度。它的结论是 "no method is consistently strong across all five dimensions"。
 
 ## 目前的实测
 
@@ -190,7 +210,7 @@ MinerUPlus 不是新的识别模型。它调用一个读取器（目前是 Miner
 
 | 角色 | 组件 | 公开来源 |
 |---|---|---|
-| `primary_reader` | MinerU 4.1，advanced 档 | [opendatalab/MinerU](https://github.com/opendatalab/MinerU) |
+| `primary_reader` | MinerU 4.0.12，advanced 档 | [opendatalab/MinerU](https://github.com/opendatalab/MinerU) |
 | `second_reader` | OXR 1.0 | [SoMarkAI/OXR](https://github.com/SoMarkAI/OXR) |
 | `decision_judge` | d3-ultra（System One 协议） | [vllm-sr/d3-ultra](https://huggingface.co/vllm-sr/d3-ultra) |
 | `page_judge` | Gemini 3.8 Flash，thinking high | Gemini API |
