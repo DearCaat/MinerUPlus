@@ -30,7 +30,10 @@ class DroppedReading(unittest.TestCase):
         # 10-30, abx: '\\Lambda' read as nothing and '\\hat' as nothing let the layer's 'Λ' and 'ˆ' look dropped
         from mineru_plus.check.dropped import plain_map
         self.assertEqual("".join(c for c, _ in plain_map("so $\\Lambda \\leq 1$")), "soΛ≤1")
-        self.assertEqual("".join(c for c, _ in plain_map("and $\\hat { a } _ { k }$")), "andˆak")
+        self.assertEqual("".join(c for c, _ in plain_map("and $\\hat { a } _ { k }$")), "andak")
+        # 10-30, abx: the layer's 'ˆa' against the parse's 'â' is no dropped accent
+        from mineru_plus.check.dropped import _norm_char
+        self.assertEqual([c for x in "ˆa" for c in _norm_char(x)], [c for x in "â" for c in _norm_char(x)])
 
     def test_overprinted_layer(self):
         # 10-30, conic: the layer writes overprinted letters twice, '𝑚𝑚𝑅𝑅2,' for 'mR2,'
@@ -38,6 +41,14 @@ class DroppedReading(unittest.TestCase):
         self.assertTrue(_doubled("𝑚𝑚𝑅𝑅2,", "mR2,"))
         self.assertFalse(_doubled("0.011", "0.01"))
         self.assertFalse(_doubled("Hello", "Helo"))
+
+
+class LookAlikeByLayer(unittest.TestCase):
+    def test_dash_is_no_word_evidence(self):
+        # 10-30, biomni: an en dash written as OXR's hyphen because the page has hyphens elsewhere
+        from mineru_plus.check import resolve as RS
+        self.assertIsNone(RS._differing_words({"primary": "tasks 13 –", "oxr": "tasks13 -"}))
+        self.assertIsNotNone(RS._differing_words({"primary": "Al model", "oxr": "AI model"}))
 
 
 class OrderedPlacement(unittest.TestCase):

@@ -45,15 +45,34 @@ def _layer_says(pg, s, exact=False):
     every printed character counts (dashes, signs), only spaces are dropped; else letters and digits"""
     f = (lambda x: re.sub(r"\s", "", unicodedata.normalize("NFC", x))) if exact else gemini._letters
     lay = f(LY.text(pg))
-    ctx = "".join(f(t) for t in s["left"][-2:])
-    hp = ctx + f(s["primary"]) in lay
-    ho = ctx + f(s["oxr"]) in lay
-    return "primary" if hp and not ho else "oxr" if ho and not hp else None
+    # two words of context, else one: a line number or a line-break hyphen of the layer can sit between them
+    # (10-30, biomni: 'nar- 47 row biomedical tasks13–19')
+    for n in (2, 1):
+        ctx = "".join(f(t) for t in s["left"][-n:])
+        hp = ctx + f(s["primary"]) in lay
+        ho = ctx + f(s["oxr"]) in lay
+        if hp != ho:
+            return "primary" if hp else "oxr"
+    return None
+
+
+def _differing_words(s):
+    """the words only one reading has, each side; None where a differing word has no letter or digit (a dash or a
+    sign is printed all over a page, so its presence in the layer says nothing; 10-30, biomni: an en dash written
+    as OXR's hyphen because the page has hyphens elsewhere)"""
+    a, b = TR.toks(s["primary"]), TR.toks(s["oxr"])
+    a, b = [w for w in a if w not in b], [w for w in b if w not in a]
+    if not a or not b or not all(any(c.isalnum() for c in w) for w in a + b):
+        return None
+    return a, b
 
 
 def _layer_words_say(pg, s):
     """the reading whose words all are words of the page's layer while the other's are not (the context of two words
     may not be in the layer as it runs: a caption read in another order; 10-29, 'Value for AI' in one supplement)"""
+    d = _differing_words(s)
+    if d is None:
+        return None
     ws = set(TR.toks(LY.text(pg)))
     hp = all(w in ws for w in TR.toks(s["primary"]))
     ho = all(w in ws for w in TR.toks(s["oxr"]))
@@ -70,10 +89,10 @@ def _doc_words_say(doc, s):
     if doc.name not in _DOC_TOKS:
         _DOC_TOKS[doc.name] = set(TR.toks(" ".join(LY.text(p) for p in doc)))
     ws = _DOC_TOKS[doc.name]
-    a, b = TR.toks(s["primary"]), TR.toks(s["oxr"])
-    a, b = [w for w in a if w not in b], [w for w in b if w not in a]
-    if not a or not b:
+    d = _differing_words(s)
+    if d is None:
         return None
+    a, b = d
     hp, ho = all(w in ws for w in a), all(w in ws for w in b)
     return "primary" if hp and not ho else "oxr" if ho and not hp else None
 

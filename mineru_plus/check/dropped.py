@@ -28,13 +28,17 @@ INSTR = ("The image is a crop of a printed page; a thin red box marks some text.
          "Do not correct or normalise either side.")
 
 
+# spacing accents are not compared: a layer has 'ˆa' where the parse has 'â' or '\hat{a}', and an accent alone is
+# not content the parse dropped (10-30, abx: 'attention ˆ â' written)
+SPACING_ACCENTS = set("ˆ˜¯˙¨ˇ˘´`^")
+
+
 def _norm_char(c):
     s = unicodedata.normalize("NFKD", c.translate(TR.VARIANT)).translate(DASH)
-    return [x for x in s if not x.isspace() and not "" <= x <= "" and not unicodedata.combining(x)]
+    return [x for x in s if x not in SPACING_ACCENTS and not x.isspace() and not "" <= x <= "" and not unicodedata.combining(x)]
 
 
-# accents over a letter print, in a text layer, as a spacing accent before it ('ˆak' for \hat{a}_k); read as nothing,
-# the layer's accent looked dropped and was written in front of the formula (10-30: 'the ˆ $\hat { y }$')
+# LaTeX accents and the spacing accent a text layer prints for each (used to keep accents out of retyped text)
 ACCENT_CMDS = {"\\hat": "ˆ", "\\widehat": "ˆ", "\\tilde": "˜", "\\widetilde": "˜", "\\bar": "¯", "\\dot": "˙",
                "\\ddot": "¨", "\\check": "ˇ", "\\breve": "˘", "\\acute": "´", "\\grave": "`"}
 
@@ -56,7 +60,7 @@ def plain_map(raw):
             nx = raw[i + 1]
             if nx.isalpha():
                 m = re.match(r"\\[A-Za-z]+", raw[i:])
-                sym = TR.LATEX.get(m.group(0)) or (ACCENT_CMDS.get(m.group(0)) if math else None)
+                sym = TR.LATEX.get(m.group(0))
                 if sym:
                     out += [(x, i) for x in _norm_char(sym)]
                 i += len(m.group(0)); continue
@@ -180,6 +184,11 @@ def _retype(pg, raw, pm, L, Lsrc, lw, ops, at):
     if (jlo > 0 and jlo - 1 not in p2l) or (jhi + 1 < len(pm) and jhi + 1 not in p2l) or hi < lo:
         return None
     ks = sorted({L[i][1] for i in range(lo, hi + 1)})
+    # an accent the formula has and the layer prints too is real, and linear text cannot carry it (10-30, abx:
+    # '\\hat { A }' retyped as 'A'); an accent the layer does not print is the misreading, and is retyped away
+    # (conic: '\\hat { M } o N u S A C' for 'MoNuSAC')
+    if any(c in raw[sp[0]:sp[1]] for c in ACCENT_CMDS) and any(a in lw[k][0] for k in ks for a in SPACING_ACCENTS):
+        return None
     box = lw[ks[0]][1]
     for k in ks:
         box |= lw[k][1]
