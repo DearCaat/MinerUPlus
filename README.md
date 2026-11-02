@@ -152,6 +152,7 @@ One PDF in, one directory out:
 | `report.md`, `report.json` | the quality statement of the run: what was compared, what was corrected, what was not checked, tool calibration |
 | `sections.json` | sections with title, level (from the heading's numbering) and page range |
 | `quote_index.json` | per-section text and whitespace-normalised text, for verbatim quote checks |
+| `positions.json` | where each stretch of `full.md` is printed in the PDF: character offsets → page and one box per printed line, word by word where the text layer has the words |
 | `figures.json` | figure and chart transcriptions, with how much of each is printed text and how much is the reader's estimate |
 | `checks/` | every disagreement with its route, verdict and source; `edits.json`; judge requests and crops |
 | `readers/` | the untouched output of both readers |
@@ -308,6 +309,19 @@ mineru-plus paper.pdf out/ --config mineru_plus.json
 
 The command prints `report.md` and writes the output directory. Readers' outputs are cached in `out/readers/`, and
 decision-judge answers are cached by question hash, so a rerun only asks what changed.
+
+To point a quote back to the PDF (for a reader, or an agent citing the paper):
+
+```bash
+python -m mineru_plus.positions out/ "a quote copied from full.md" --crop quote.png
+```
+
+It prints the quote's offsets in `full.md`, its pages and boxes, and how each box was found: `layer` (the words'
+own boxes in the text layer), `between` (text the layer does not hold, such as a formula, boxed by what is printed
+between its neighbours), or `block` (the box of the reader's block, for text with no layer, such as a raster
+table). `--crop` draws the boxes on the page. From Python, `positions.find(out_dir, quote)` returns the same.
+On the 24 documents of our regression set, 95.7% of the text characters of `full.md` get `layer` boxes, 0.2%
+`between` and 1.9% `block`; the rest (panel letters, short labels that occur elsewhere too) get none.
 
 ## Roadmap
 

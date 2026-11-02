@@ -5,6 +5,8 @@
   out/readers/oxr/            OXR output, untouched (independent visual reading)
   out/full.md                 the parse: primary reading, figure transcriptions moved out, settled disagreements written in
   out/figures.json            the reader's transcriptions of figures and charts, with how much of each is printed text
+  out/positions.json          where full.md is printed: page and word boxes for each passage (positions.py; look up a
+                              quote with python -m mineru_plus.positions OUT_DIR "quote")
   out/checks/                 disagreements of the two readings with their route, verdict and plan; jev requests
   out/issues.json             what the run could not settle, for the calling agent
   out/report.json, report.md  the quality statement of this run
@@ -12,7 +14,7 @@
 import argparse, collections, difflib, json, re, shutil, sys, tempfile, time, threading
 import pymupdf
 from pathlib import Path
-from . import profile as PR, repair as RP, margins as MG
+from . import profile as PR, repair as RP, margins as MG, positions as PS
 from .readers import mineru as MR, oxr as OX
 from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL, omissions as OM, two_readings as TR, resolve as RS, coverage as CV, tables as TB, equations as EQ
 from . import layer as LY, sections as SC, backends, config
@@ -403,6 +405,14 @@ def _parse(pdf, out, src):
     (out / "full.md").write_text(md)
     checks["sections"] = {"sections": SC.write(pdf, md, mdir, out),
                           "summary": "sections.json and quote_index.json in the pdf_parser schema"}
+    pc = PS.write(pdf, mdir, md, out)
+    n = pc["text characters"] or 1
+    checks["positions"] = {**pc, "summary": (
+        f"positions.json: of {pc['text characters']} characters of full.md (markup left out), "
+        f"{pc.get('characters in layer spans', 0) / n:.1%} have the box of the text-layer word that prints them, "
+        f"{pc.get('characters in between spans', 0) / n:.1%} the box of the layer text between their aligned neighbours "
+        f"(formulas, misread words), {pc.get('characters in block spans', 0) / n:.1%} only the reader's block box; "
+        f"{pc['blocks not found in full.md']} of the reader's blocks were not found in full.md")}
     (out / "figures.json").write_text(json.dumps(figs, indent=1, ensure_ascii=False))
     (out / "issues.json").write_text(json.dumps(issues, indent=1, ensure_ascii=False))
 

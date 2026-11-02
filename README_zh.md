@@ -131,6 +131,7 @@ Figure transcriptions: 4 (figures.json), 4 moved out of full.md; 0/215 of their 
 | `report.md`、`report.json` | 本次运行的质量说明：比对了什么、改了什么、什么没查，以及各工具的校准数据 |
 | `sections.json` | 章节：标题、层级（按标题编号的深度定）、页码范围 |
 | `quote_index.json` | 每节原文和去空白后的版本，供逐字核对引文 |
+| `positions.json` | `full.md` 每段文字印在 PDF 的哪里：字符偏移 → 页码和每行一个框；文字层有这些词时精确到词 |
 | `figures.json` | 图和图表的转写；哪些是页面上印出的字，哪些是读取器的估计 |
 | `checks/` | 每处不一致的处理路径、判定和依据；`edits.json`；判定器的请求和截图 |
 | `readers/` | 两个读取器的原始输出，未经改动 |
@@ -243,6 +244,17 @@ mineru-plus paper.pdf out/ --config mineru_plus.json
 ```
 
 命令会打印 `report.md` 并写出输出目录。读取器的输出缓存在 `out/readers/`，判定器的回答按题目哈希缓存，重跑时只问改动过的题。
+
+引用原文时回指 PDF 位置（给读者，或给引用论文的 agent）：
+
+```bash
+python -m mineru_plus.positions out/ "从 full.md 复制的一句原文" --crop quote.png
+```
+
+输出这句在 `full.md` 的偏移、所在页和框，以及每个框的来源：`layer`（文字层里这些词自己的框）、`between`（文字层没有的
+文字，如公式，用前后两个词之间印出的内容框住）、`block`（读取器块的框，用于没有文字层的内容，如图片表格）。`--crop`
+把框画在页面上。Python 里 `positions.find(out_dir, quote)` 返回同样的结果。在我们回归集的 24 篇文档上，`full.md`
+正文字符 95.7% 有 `layer` 框，0.2% 是 `between`，1.9% 是 `block`；其余（分图字母、别处也出现的短标签）没有框。
 
 ## 路线图
 
