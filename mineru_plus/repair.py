@@ -63,6 +63,14 @@ def _new_span(span_text, s):
     return "".join(out) + span_text[pos:]
 
 
+def _locate_split(text, s):
+    """the split word alone, where it occurs once in the block: the passage around it may hold markup the tokens do
+    not (11-02, rnasplice: 'welldocumented heterogeneity<sup>48,49</sup>' against the tokens '... heterogeneity 48,49')"""
+    left, right = s["split"].split("-|")
+    m = list(re.finditer(rf"(?<![^\W_]){re.escape(left)}\s*[{HYC}]?\s*{re.escape(right)}(?![^\W_])", text))
+    return m[0].span() if len(m) == 1 else None
+
+
 def plan(s):
     """what to do with one settled disagreement: 'edit', 'keep' or an open-issue reason"""
     v = s.get("verdict")
@@ -143,7 +151,7 @@ def apply(md, pages, subs):
         if block is None or md.count(block) != 1:
             issues.append({"id": s["id"], "page": s["page"], "why": "block text not found once in full.md",
                            "primary": s["primary"], "oxr": s["oxr"], "context": s["context"]}); continue
-        span = _locate(block, s)
+        span = _locate(block, s) or (_locate_split(block, s) if s["route"] == "line-break hyphen" else None)
         if not span:
             issues.append({"id": s["id"], "page": s["page"], "why": "passage not found once in its block",
                            "primary": s["primary"], "oxr": s["oxr"], "context": s["context"]}); continue

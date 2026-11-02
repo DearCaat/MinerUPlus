@@ -61,6 +61,8 @@ def plain_map(raw):
             if nx.isalpha():
                 m = re.match(r"\\[A-Za-z]+", raw[i:])
                 sym = TR.LATEX.get(m.group(0))
+                if sym is None and math and m.group(0)[1:] in TR.FUNCS:
+                    sym = m.group(0)[1:]                 # \log prints 'log'
                 if sym:
                     out += [(x, i) for x in _norm_char(sym)]
                 i += len(m.group(0)); continue

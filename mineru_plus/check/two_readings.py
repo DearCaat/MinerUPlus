@@ -25,6 +25,21 @@ LATEX = {r"\pm": "±", r"\times": "×", r"\leq": "≤", r"\le": "≤", r"\geq": 
          r"\kappa": "κ", r"\dagger": "†", r"\ddagger": "‡", r"\to": "→", r"\rightarrow": "→", r"\infty": "∞",
          r"\lt": "<", r"\gt": ">", r"\ast": "*", r"\circ": "°", r"\sigma": "σ", r"\lambda": "λ", r"\delta": "δ",
          r"\gamma": "γ", r"\rho": "ρ", r"\tau": "τ", r"\theta": "θ", r"\Delta": "Δ", r"\prime": "′"}
+# symbols a formula prints that the reading may hold as a command (11-02, prism: '\ell', '\in', '\log' read as
+# printing nothing, so the layer's 'ℓ', '∈', 'log' looked dropped and were written in beside the formula)
+LATEX.update({r"\ell": "ℓ", r"\in": "∈", r"\notin": "∉", r"\ni": "∋", r"\mid": "|", r"\star": "⋆", r"\propto": "∝",
+              r"\nabla": "∇", r"\partial": "∂", r"\forall": "∀", r"\exists": "∃", r"\sum": "∑", r"\prod": "∏",
+              r"\int": "∫", r"\neq": "≠", r"\ne": "≠", r"\equiv": "≡", r"\simeq": "≃", r"\cong": "≅", r"\ll": "≪",
+              r"\gg": "≫", r"\subset": "⊂", r"\subseteq": "⊆", r"\supset": "⊃", r"\supseteq": "⊇", r"\cup": "∪",
+              r"\cap": "∩", r"\leftarrow": "←", r"\gets": "←", r"\Rightarrow": "⇒", r"\Leftarrow": "⇐",
+              r"\leftrightarrow": "↔", r"\Leftrightarrow": "⇔", r"\mapsto": "↦", r"\uparrow": "↑",
+              r"\downarrow": "↓", r"\ldots": "…", r"\dots": "…", r"\cdots": "⋯", r"\oplus": "⊕", r"\otimes": "⊗",
+              r"\odot": "⊙", r"\perp": "⊥", r"\parallel": "∥", r"\emptyset": "∅", r"\varnothing": "∅",
+              r"\hbar": "ℏ", r"\neg": "¬", r"\lnot": "¬", r"\wedge": "∧", r"\vee": "∨", r"\land": "∧",
+              r"\lor": "∨", r"\lceil": "⌈", r"\rceil": "⌉", r"\lfloor": "⌊", r"\rfloor": "⌋",
+              r"\langle": "⟨", r"\rangle": "⟩", r"\triangle": "△", r"\bullet": "•", r"\Vert": "‖"})
+# a command is a whole name: '\le' is not the start of '\left', nor '\in' of '\int'
+LATEX_CMD = re.compile(r"\\(?:[A-Za-z]+|%)")
 import unicodedata as _ud
 for _n in ("alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon "
            "phi chi psi omega").split():
@@ -44,15 +59,14 @@ CMD = re.compile(r"\\(?:mathrm|mathsf|mathbf|mathit|mathcal|mathbb|text|textrm|t
                  r"textup|textnormal|mathnormal|emph|underline)\b|\\[,;:!> ]")   # last: LaTeX spacing commands
 # one printed sign, several code points (the reader's choice, not the page's): typographic variants only.
 # Middle dot vs period and minus vs hyphen are NOT here: those are different printed signs.
-VARIANT = str.maketrans({"’": "'", "‘": "'", "′": "'", "“": '"', "”": '"', "∼": "~", "∗": "*", "●": "•", "∙": "•", "⁄": "/",
+VARIANT = str.maketrans({"’": "'", "‘": "'", "′": "'", "“": '"', "”": '"', "∼": "~", "∗": "*", "∣": "|", "●": "•", "∙": "•", "⁄": "/",
                          "\u00a0": " ", "ﬁ": "fi", "ﬂ": "fl", "ﬀ": "ff"})
 
 
 def latex_plain(x):
     """LaTeX symbols as the characters they print, styling commands dropped: applied to both readings before
     tokenising, so a command name ('mathbf', 'times') never becomes a word of the comparison"""
-    for k in sorted(LATEX, key=len, reverse=True):
-        x = x.replace(k, " " + LATEX[k] + " ")
+    x = LATEX_CMD.sub(lambda m: " " + LATEX[m.group()] + " " if m.group() in LATEX else m.group(), x)
     return CMD.sub(" ", x)
 
 
@@ -100,8 +114,7 @@ def cross_script(a, b):
 def canon(x):
     """the printed characters of a reading: LaTeX symbols as characters, styling commands, markup and spaces dropped"""
     x = LINK.sub(r"\1", x).replace(" ", "").replace("‘‘", "“").replace("’’", "”").replace("''", '"')
-    for k in sorted(LATEX, key=len, reverse=True):
-        x = x.replace(k, LATEX[k])
+    x = LATEX_CMD.sub(lambda m: LATEX.get(m.group(), m.group()), x)
     x = CMD.sub("", x)
     return MARKUP.sub("", x).translate(VARIANT).replace(" ", "")
 

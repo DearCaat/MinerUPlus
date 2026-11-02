@@ -47,6 +47,16 @@ def _layer_says(pg, s, exact=False):
     lay = f(LY.text(pg))
     # two words of context, else one: a line number or a line-break hyphen of the layer can sit between them
     # (10-30, biomni: 'nar- 47 row biomedical tasks13–19')
+    # context on both sides first: a word and its left neighbour can recur on the page with the other reading
+    # (11-02, wsicond: 'The resuls are' printed once, 'The results' twice elsewhere on the page)
+    for n in (2, 1):
+        lc, rc = "".join(f(t) for t in s["left"][-n:]), "".join(f(t) for t in s.get("right", [])[:n])
+        if not rc:
+            break
+        hp = lc + f(s["primary"]) + rc in lay
+        ho = lc + f(s["oxr"]) + rc in lay
+        if hp != ho:
+            return "primary" if hp else "oxr"
     for n in (2, 1):
         ctx = "".join(f(t) for t in s["left"][-n:])
         hp = ctx + f(s["primary"]) in lay

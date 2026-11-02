@@ -72,3 +72,39 @@ def test_unread_line_break_runs():
     assert _other_split("Palisoul", bk) == "Pali-soul"
     assert _other_split("dataset 3", bk) == "data-set 3"
     assert _other_split("unrelated words", bk) is None
+
+
+def test_formula_symbols_are_printed_characters():
+    """prism 11-02: '\\ell', '\\in', '\\log' in a formula print 'ℓ', '∈', 'log'; '\\le' is not the start of '\\left'"""
+    from mineru_plus.check import dropped as DR, two_readings as TR
+    plain = lambda r: "".join(c for c, _ in DR.plain_map(r))
+    assert plain(r"an $\ell_{2}$-regularized") == "anl2-regularized"
+    assert plain(r"Stability $\in [0,1]$") == "Stability∈[0,1]"
+    assert plain(r"against $\log_{10}$") == "againstlog10"
+    assert TR.canon(r"$\left( x \right) \le 1$") == "(x)≤1"
+    assert "∫" in TR.latex_plain(r"\int f") and "∈" not in TR.latex_plain(r"\int f")
+
+
+def test_layer_context_on_both_sides():
+    """wsicond 11-02: 'The resuls are' printed once and 'The results' elsewhere on the page; the left word alone
+    finds both readings, both sides find only the printed one"""
+    from mineru_plus.check import resolve as R
+    from mineru_plus import layer as LY
+    import pymupdf
+    doc = pymupdf.open()
+    pg = doc.new_page()
+    pg.insert_text((50, 80), "The results of the first part. The resuls are presented in Tab. 12.")
+    pg.insert_text((50, 100), "The results show it.")
+    s = {"primary": "resuls", "oxr": "results", "left": ["NICER", "'s", ".", "The"], "right": ["are", "presented"]}
+    assert R._layer_says(LY.page(doc, 0), s) == "primary"
+
+
+def test_line_break_word_written_beside_markup():
+    """rnasplice 11-02: the passage holds a superscript the tokens do not; the split word alone is found once"""
+    from mineru_plus import repair as RP
+    s = {"route": "line-break hyphen", "verdict": "hyphen", "split": "well-|documented",
+         "primary_toks": ["welldocumented", "heterogeneity", "48", ",", "49"], "left": ["its"]}
+    block = "because of its welldocumented heterogeneity<sup>48,49</sup>. The tumor"
+    span = RP._locate(block, s) or RP._locate_split(block, s)
+    assert block[span[0]:span[1]] == "welldocumented"
+    assert RP._new_span(block[span[0]:span[1]], s) == "well-documented"
