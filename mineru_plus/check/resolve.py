@@ -11,6 +11,10 @@
                       the correct spelling where the page prints a typo (25-40% of decided printed-typo items wrong).
   omission            the text layer and OXR both have a run the primary dropped (check/omissions.py): written as the
                       layer prints it, no judge (two readings against one).
+With a source document (source.py) its spelling settles a line-break word before usage and jev, and its reading settles
+a difference of letters or digits before the judges where the text layer does not hold the other reading (a source can
+be another version than the page). Omissions and look-alikes stay with the text layer: what the page prints there
+(a list marker, a dash) a source renders its own way.
 Disagreements in spacing or markup only are not judged (form, not content).
 """
 import base64, re, unicodedata
@@ -136,17 +140,31 @@ def _jev_exact(items, placed, work):
     return out
 
 
-def _drops_letters(s):
-    """OXR's letters and digits are a proper subsequence of the primary's"""
-    a = [c for c in s["primary"] if c.isalnum()]
-    b = [c for c in s["oxr"] if c.isalnum()]
+def _drops_letters(s, short="oxr", long="primary"):
+    """OXR's letters and digits are a proper subsequence of the primary's (or short's of long's)"""
+    a = [c for c in s[long] if c.isalnum()]
+    b = [c for c in s[short] if c.isalnum()]
     if len(b) >= len(a):
         return False
     it = iter(a)
     return all(c in it for c in b)
 
 
-def settle(pdf, subs, work):
+def _latin(c):
+    return c.isdigit() or (c.isalpha() and unicodedata.name(c, "").startswith("LATIN"))
+
+
+def _source_may_spell(a, b):
+    """a spelling question a source can answer: Latin letters and digits, a word or two on each side. A source renders
+    formulas, symbols and Greek its own way (MathML order; '2a⊤b' compares as '2ab' once ⊤ is no letter), and
+    readings that differ by whole words are reading order (11-02: an author list read in another order, an edit that
+    wrote 'Computerised' twice and failed the acceptance of the whole document)"""
+    ta, tb = a.split(), b.split()
+    return all(_latin(c) or c in " .,-'’" for c in a + b) and any(map(_latin, a)) and any(map(_latin, b)) and \
+        abs(len(ta) - len(tb)) <= 1 and max(len(ta), len(tb)) <= 2
+
+
+def settle(pdf, subs, work, src=None):
     work = Path(work)
     doc = pymupdf.open(pdf)
     usage_idx = LB.midline_index([doc])
@@ -186,6 +204,11 @@ def settle(pdf, subs, work):
         if hit:
             left, right, full = hit
             s["route"], s["split"] = "line-break hyphen", f"{left}-|{right}"
+            v = src.hyphen(s["left"], s["primary"], s["oxr"], s.get("right", [])) if src else None
+            if v is not None:
+                s["verdict"] = "hyphen" if any(c in s[("primary", "oxr")[v]] for c in LB.HY) else "joined"
+                s["by"] = "source document"
+                continue
             u = LB.usage(full, right, usage_idx)
             s["usage"] = u
             if u["hyphen"] and not u["joined"]:
@@ -209,6 +232,22 @@ def settle(pdf, subs, work):
         if s["primary_shown"] == s["oxr_shown"]:
             s["route"], s["verdict"], s["by"] = "form only", "no action", "markup tokens only"
             continue
+        if src and _source_may_spell(s["primary_shown"], s["oxr_shown"]):
+            v = src.spells([t for t in s["left"] if not PURE_MARKUP.fullmatch(t)], s["primary_shown"], s["oxr_shown"],
+                           [t for t in s.get("right", []) if not PURE_MARKUP.fullmatch(t)])
+            if v is not None:
+                side = ("primary", "oxr")[v]
+                lay = _layer_says(LY.page(doc, s["page"] - 1), s)
+                s["source_says"] = side
+                # a reading that only lacks characters of the other is what a source has where it writes a symbol
+                # that is no letter (11-02, wilson: printed '2a⊤b', the primary '2aI b', the source '2ab'): there the
+                # text layer must print it character for character
+                if _drops_letters(s, side, ("primary", "oxr")[1 - v]):
+                    lay = _layer_says(LY.page(doc, s["page"] - 1), s, exact=True)
+                if lay == side or lay is None and not _drops_letters(s, side, ("primary", "oxr")[1 - v]):
+                    s["verdict"] = side
+                    s["by"] = "source document" + (" and text layer" if lay else "")
+                    continue
         char_q.append({"id": s["id"], "page": s["page"], "bbox": s["bbox"], "pos": s.get("pos_in_block"), "left": " ".join(s["left"][-6:]),
                        "right": " ".join(s["right"][:6]), "primary": s["primary_shown"], "oxr": s["oxr_shown"],
                        "toks": {"left": [t for t in s["left"] if not PURE_MARKUP.fullmatch(t)][-3:],

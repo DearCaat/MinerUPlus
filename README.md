@@ -323,6 +323,26 @@ table). `--crop` draws the boxes on the page. From Python, `positions.find(out_d
 On the 24 documents of our regression set, 95.7% of the text characters of `full.md` get `layer` boxes, 0.2%
 `between` and 1.9% `block`; the rest (panel letters, short labels that occur elsewhere too) get none.
 
+If you have the paper's source, pass it: the JATS XML of a journal article, the arXiv or publisher HTML, or the
+LaTeX source (a `.tex` file, a directory or a `.tar.gz`); `--source` can be given more than once.
+
+```bash
+mineru-plus paper.pdf out/ --source paper.html
+```
+
+The source is the authors' text, not the page: it can be another version, and it renders formulas, symbols, list
+markers and citations its own way. So it answers two questions, and only where the parse's words around the place
+are its words too: how a word split at a line end is spelled (`well-documented` or `welldocumented`; the page prints
+a hyphen at the line end either way, so neither the text layer nor a judge can tell), and which of two readings
+that differ in Latin letters or digits the authors wrote, taken only where the text layer does not print the other
+reading. It also finds split words both readers spelled alike against the source, which no disagreement brings up.
+Nothing is downloaded; without `--source` the run is as before. `report.md` says what the source settled.
+On 15 documents with a source (7 arXiv HTML, 8 JATS), compared with runs without it: 19 line-break spellings
+changed to the source's (`under-represented`, `down-regulation`, `pretrained`), 1 formula letter corrected that the
+judge had confirmed wrongly, 9 open disagreements settled where the page prints a typo or the judges were undecided;
+the edits that the JATS and arXiv HTML versions contradict went from 11 (before the 11-02 fixes) to the 3 list
+markers the page prints and the HTML has as markup.
+
 ## Roadmap
 
 - [ ] Unwrap prose that the reader typed as math (`$( n = 210 ) ; I - T ,$`)

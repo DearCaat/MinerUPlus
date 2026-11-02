@@ -17,7 +17,8 @@ from pathlib import Path
 from . import profile as PR, repair as RP, margins as MG, positions as PS
 from .readers import mineru as MR, oxr as OX
 from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL, omissions as OM, two_readings as TR, resolve as RS, coverage as CV, tables as TB, equations as EQ
-from . import layer as LY, sections as SC, backends, config
+from . import layer as LY, sections as SC, backends, config, source as SRC
+from .check import linebreak as LB
 
 VERSION = "0.5.6"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
@@ -238,7 +239,7 @@ def _move_figures(pdf, rdir, md):
     return DETAILS.sub(take, md), figs, undeclared
 
 
-def parse(pdf, out):
+def parse(pdf, out, sources=()):
     """the PDF is read from a local copy: on a mounted Windows drive every page's text extraction goes back to the
     file (10-29: a mounted Windows drive, 27 pages: 14.7 s to extract all words against 0.2 s from the local disk; 527 of a run's
     820 s were text extraction)"""
@@ -246,12 +247,12 @@ def parse(pdf, out):
     tmp = Path(tempfile.mkdtemp(prefix="mineru_plus_"))
     try:
         shutil.copyfile(src, tmp / src.name)
-        return _parse(tmp / src.name, out, src)
+        return _parse(tmp / src.name, out, src, SRC.load(sources))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def _parse(pdf, out, src):
+def _parse(pdf, out, src, source=None):
     pdf, out = Path(pdf), Path(out)
     out.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
@@ -283,10 +284,12 @@ def _parse(pdf, out, src):
         stats, subs, unread = TR.compare(mdir, odir)
         lb_subs, unread = UR.linebreak_subs(pdf, mdir, unread)     # split words the alignment left unpaired
         subs += lb_subs
+        if source:                                                 # split words both readers spell alike
+            subs += LB.source_splits(pdf, mdir, subs, source)
         layer_pages = set(MR.pages(mdir)) - set(prof["pages_without_text_layer"])
         om = OM.find(pdf, mdir, odir)
         subs = [s for s in subs if not any(OM.overlaps(o, s) for o in om)] + om
-        subs = RS.settle(pdf, subs, out / "checks")
+        subs = RS.settle(pdf, subs, out / "checks", source)
         md, edits, open_items = RP.apply(md0, MR.pages(mdir), subs)
         # text-layer content the primary dropped or changed, judged by jev and written back (check/dropped.py)
         found = DR.judge(DR.find(pdf, mdir, out / "checks" / "dropped", md), out / "checks" / "dropped")
@@ -373,6 +376,18 @@ def _parse(pdf, out, src):
                        f"{sum(1 for s in subs if s.get('crop_checked') is False)} of "
                        f"{sum(1 for s in subs if 'crop_checked' in s)} passages for the page judges had no crop jev "
                        f"found to show them whole (not judged, open)"}
+        if source:
+            lbn = cnt(lambda s: s.get("route") == "line-break hyphen" and s.get("by") == "source document")
+            chn = cnt(lambda s: s.get("route") == "characters" and s.get("by", "").startswith("source document"))
+            found = cnt(lambda s: s.get("source", "").endswith("the source document the other way"))
+            against = cnt(lambda s: s.get("source_says") and not s.get("by", "").startswith("source document"))
+            checks["source"] = {"files": source.names, "line-break words spelled": lbn,
+                                "of them both readers spelled alike": found, "letter differences settled": chn,
+                                "the text layer holds the other reading": against,
+                                "summary": f"source document {', '.join(source.names)}: spelled {lbn} line-break words "
+                                           f"({found} of them both readers had spelled alike), settled {chn} differences "
+                                           f"of letters or digits; at {against} the text layer holds the other reading "
+                                           f"(judged on the page as without a source)"}
         unchecked += ["page headers, footers and page numbers: checked against the text layer only (coverage); a "
                       "broken layer there is not caught (OXR output has no headers or footers)",
                       ]
@@ -488,6 +503,10 @@ def main(argv=None):
                     "image. The external components are set in the config file (see config.example.json).")
     ap.add_argument("--config", metavar="PATH",
                     help="config file (default: $MINERU_PLUS_CONFIG, else ./mineru_plus.json)")
+    ap.add_argument("--source", metavar="PATH", action="append", default=[],
+                    help="the paper's source document, if you have it: JATS or other XML, HTML (arXiv, publisher), a .tex "
+                         "file, or a LaTeX source directory or .tar(.gz); repeatable. It settles line-break spellings and "
+                         "letter differences the text layer does not decide")
     ap.add_argument("pdf", help="the PDF to parse")
     ap.add_argument("out_dir", help="the output directory")
     a = ap.parse_args(argv)
@@ -501,7 +520,7 @@ def main(argv=None):
         backends.get("second_reader")
     except config.ConfigError as e:          # the run goes on without a second reading, and says so in its report
         print(f"mineru_plus: warning: {e}", file=sys.stderr)
-    print(render(parse(a.pdf, a.out_dir)))
+    print(render(parse(a.pdf, a.out_dir, a.source)))
 
 
 if __name__ == "__main__":

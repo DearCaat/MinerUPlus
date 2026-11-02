@@ -9,6 +9,7 @@ not "which reading does the page print".
                            split word of that page (both criteria from the text layer geometry; no thresholds)
   usage(word, docs)        how the documents spell the word where it is not split: counts of 'long-term' and
                            'longterm' in mid-line words of the text layer
+  source_splits(...)       split words both readers spell alike that a source document spells the other way
 """
 import re
 from .. import layer as LY
@@ -82,3 +83,57 @@ def midline_index(docs):
 def usage(left, right, idx):
     """how the indexed documents spell the split word where it is not split"""
     return {"hyphen": idx.get((left + "-" + right).lower(), 0), "joined": idx.get((left + right).lower(), 0)}
+
+
+SKIP_TYPES = {"image", "chart", "equation", "interline_equation"}
+
+
+def source_splits(pdf_path, mdir, subs, src):
+    """Split words of the text layer that both readers spell alike while the source document spells them the other
+    way: no disagreement brings them to the line-break route (11-02: 'under-|represented', 'under-|specified'
+    joined by both readers, the JATS or arXiv HTML source has the hyphen). Each becomes a line-break item with the
+    source's spelling as OXR's, where the page's blocks hold the word once and no item of the page already covers it;
+    settle() takes the source's spelling for it."""
+    import pymupdf
+    from ..readers import mineru as MR
+    pdf = pymupdf.open(pdf_path)
+    A = MR.pages(mdir)
+    covered = {}
+    for x in subs:
+        covered.setdefault(x["page"], []).append(letters(x.get("primary") or "") + "|" + letters(x.get("oxr") or ""))
+    out = []
+    for pg_no in sorted(A):
+        if not 0 < pg_no <= pdf.page_count:
+            continue
+        seen = set()
+        for left, right in breaks(LY.page(pdf, pg_no - 1)):
+            right = re.match(r"[^\W\d_]*", right or "").group()     # a reference mark may follow ('data-|set3')
+            if not (left and right) or not left.isalpha() or (left, right) in seen:
+                continue
+            seen.add((left, right))
+            if any(left + right in c for c in covered.get(pg_no, [])):
+                continue
+            pat = re.compile(r"(?<![^\W_])" + re.escape(left) + r"(\s*[-­‐‑]\s*)?" + re.escape(right)
+                             + r"(?![^\W_])")
+            hits = []
+            for uid, typ, part in MR.units(A[pg_no]):
+                raw = part.get("content")
+                if typ in SKIP_TYPES or not isinstance(raw, str):
+                    continue
+                hits += [(uid, typ, part, raw, m) for m in pat.finditer(raw)]
+            if len(hits) != 1:
+                continue                                         # not in the page's text, or more than once
+            uid, typ, part, raw, m = hits[0]
+            prim = m.group()
+            other = left + right if m.group(1) else left + "-" + right
+            lo, hi = m.span()
+            lft, rgt = raw[:lo].split()[-8:], raw[hi:].split()[:8]
+            if src.hyphen(lft, prim, other, rgt) != 1:
+                continue                                         # the source writes the primary's spelling, or neither
+            out.append({"kind": "content", "page": pg_no, "blocks": [uid], "bbox": part.get("bbox"), "block_type": typ,
+                        "pos_in_block": round(lo / max(1, len(raw)), 3), "primary": prim, "oxr": other,
+                        "primary_text": prim, "oxr_text": other, "raw_span": [lo, hi], "primary_toks": [prim],
+                        "oxr_toks": [other], "left": lft, "right": rgt,
+                        "context": " ".join(lft) + " [...] " + " ".join(rgt),
+                        "source": "a line-break word both readers spell alike, the source document the other way"})
+    return out

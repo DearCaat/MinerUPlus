@@ -256,6 +256,22 @@ python -m mineru_plus.positions out/ "从 full.md 复制的一句原文" --crop 
 把框画在页面上。Python 里 `positions.find(out_dir, quote)` 返回同样的结果。在我们回归集的 24 篇文档上，`full.md`
 正文字符 95.7% 有 `layer` 框，0.2% 是 `between`，1.9% 是 `block`；其余（分图字母、别处也出现的短标签）没有框。
 
+有论文源文件时一并传入：期刊文章的 JATS XML、arXiv 或出版社的 HTML、LaTeX 源（`.tex` 文件、目录或 `.tar.gz`）；
+`--source` 可以给多次。
+
+```bash
+mineru-plus paper.pdf out/ --source paper.html
+```
+
+源文件是作者的文本，不是页面：它可能是另一个版本，公式、符号、列表标记、引用也按自己的方式渲染。所以它只回答两个问题，
+而且只在该处前后的词与解析结果一致时回答：行末断开的词怎么拼（`well-documented` 还是 `welldocumented`；行末无论如何都
+印连字符，文字层和判定模型都分不出来）；两个读法在拉丁字母或数字上不同时作者写的是哪个，且只在文字层没有印另一个读法时
+采纳。它还会找出两个读取器拼得一样、却和源文件不同的断行词，这类词不会作为分歧出现。不下载任何东西；不给 `--source`
+时运行与以前相同。`report.md` 写明源文件定了什么。在 15 篇有源文件的文档上（7 篇 arXiv HTML、8 篇 JATS），与不给源文件
+相比：19 处断行拼写改成源文件的写法（`under-represented`、`down-regulation`、`pretrained`），1 处判定模型误确认的公式字母
+被纠正，9 处页面印错字或判定未决的分歧被定下；JATS 与 arXiv HTML 否定的改动从 11 处（11-02 修复之前）降到 3 处，都是页面
+印出、HTML 用标记表示的列表符号。
+
 ## 路线图
 
 - [ ] 把 MinerU 误包成公式的正文还原成纯文本（例如 `$( n = 210 ) ; I - T ,$`）
