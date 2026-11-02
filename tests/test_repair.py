@@ -63,3 +63,12 @@ class OrderedPlacement(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_unread_line_break_runs():
+    from mineru_plus.check.unread import _other_split
+    bk = [("pre", "dictions"), ("Pali", "soul,"), ("data", "set3")]
+    assert _other_split("pre-dictions", bk) == "predictions"
+    assert _other_split("Palisoul", bk) == "Pali-soul"
+    assert _other_split("dataset 3", bk) == "data-set 3"
+    assert _other_split("unrelated words", bk) is None

@@ -279,6 +279,8 @@ def _parse(pdf, out, src):
     else:
         dollars = TR.settle_dollars(mdir, odir, out / "checks" / "dollars")
         stats, subs, unread = TR.compare(mdir, odir)
+        lb_subs, unread = UR.linebreak_subs(pdf, mdir, unread)     # split words the alignment left unpaired
+        subs += lb_subs
         layer_pages = set(MR.pages(mdir)) - set(prof["pages_without_text_layer"])
         om = OM.find(pdf, mdir, odir)
         subs = [s for s in subs if not any(OM.overlaps(o, s) for o in om)] + om

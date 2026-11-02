@@ -11,12 +11,12 @@ prints exactly the primary's text there, in both option orders (its 'yes' is rel
 lines it said no to 36%, 10-29). A run is confirmed when every line gets yes; a run with a line jev reads otherwise,
 or undecided, or that the layer cannot place, is an open issue with its crop for the calling agent.
 """
-import collections, difflib, hashlib, base64
+import collections, difflib, hashlib, base64, re
 from pathlib import Path
 import pymupdf
 from ..readers import mineru as MR
 from .. import layer as LY
-from . import coverage as CV, dropped as DR, two_readings as TR, jev
+from . import coverage as CV, dropped as DR, two_readings as TR, linebreak as LB, jev
 
 INSTR = DR.INSTR.replace("a thin red box marks some text", "thin red boxes mark some text").replace(
     "inside the red box", "inside the red boxes")
@@ -24,6 +24,70 @@ INSTR = DR.INSTR.replace("a thin red box marks some text", "thin red boxes mark 
 
 FIG_INSTR = ("The image is a figure from a printed page. Look for the quoted text among the words printed in the figure "
              "(titles, labels, legends). Compare letters and digits; case, spaces and line breaks do not matter.")
+
+
+def linebreak_subs(pdf_path, mdir, runs):
+    """Runs that are a word split at a line end of the layer, which the primary reads one way (with or without the
+    hyphen) and OXR the other: the alignment pairs 'pre - dictions' with nothing when OXR has 'predictions', so the run
+    looked unread and jev was asked whether the box prints 'pre' (11-02, path2space: 3 of 17 open runs). They are a
+    spelling question: returned as disagreements for resolve's line-break route (document usage, then jev spelling),
+    with the other spelling as OXR's; the remaining runs are returned as they are."""
+    pdf = pymupdf.open(pdf_path)
+    A = MR.pages(mdir)
+    subs, rest, bks = [], [], {}
+    for r in runs:
+        pg_no = r["page"]
+        alt = None
+        if 0 < pg_no <= pdf.page_count and pg_no in A:
+            bk = bks.setdefault(pg_no, LB.breaks(LY.page(pdf, pg_no - 1)))
+            alt = _other_split(r["text"], bk)
+        if alt is None:
+            rest.append(r)
+            continue
+        raw = MR.unit(A[pg_no], r["block"])[1].get("content") or ""
+        lo, hi = r["raw_span"]
+        left, right = raw[:lo].split()[-8:], raw[hi:].split()[:8]
+        subs.append({"kind": "content", "page": pg_no, "blocks": [r["block"]], "bbox": r["bbox"],
+                     "block_type": r["block_type"], "pos_in_block": round(lo / max(1, len(raw)), 3),
+                     "primary": r["text"], "oxr": alt, "primary_text": r["text"], "oxr_text": alt, "raw_span": [lo, hi],
+                     "primary_toks": r["toks"], "oxr_toks": alt.split(), "left": left, "right": right,
+                     "context": " ".join(left) + " [...] " + " ".join(right),
+                     "source": "a line-break word OXR did not pair (its other spelling stands for OXR's)"})
+    return subs, rest
+
+
+def _other_split(text, bk):
+    """the run with the hyphen of a layer line break dropped (it holds 'pre-dictions') or put back (it holds
+    'Palisoul'); None when the run holds no split word of the page"""
+    for left, right in bk:
+        # the next line's word may carry a reference mark ('data-|set3', a superscript 3): its letters are the word
+        right = re.match(r"[^\W\d_]*", right or "").group()
+        if not (left and right) or not left.isalpha():
+            continue
+        m = re.search(re.escape(left) + r"\s*[-­‐‑]\s*" + re.escape(right), text)
+        if m:
+            return text[:m.start()] + left + right + text[m.end():]
+        m = re.search(r"(?<!\w)" + re.escape(left + right), text)
+        if m:
+            return text[:m.start()] + left + "-" + right + text[m.end():]
+    return None
+
+
+def _in_boxes(w, pg, boxes):
+    """the layer word's centre lies in one of the normalized boxes"""
+    nb = CV._norm_box(pymupdf.Rect(w[:4]) * pg.rotation_matrix, pg)
+    return any(CV._inside(((nb[0] + nb[2]) / 2, (nb[1] + nb[3]) / 2), b) for b in boxes)
+
+
+def _figure_boxes(page_units, r):
+    """normalized boxes of the figure a caption's or note's run belongs to (the page's image blocks and the run's own
+    box), or None when the run is not in a figure's caption or note"""
+    if "." not in str(r["block"]):
+        return None
+    if MR.unit(page_units, int(str(r["block"]).split(".")[0]))[0] not in CV.FIGURE:
+        return None
+    fb = [u[2]["bbox"] for u in MR.units(page_units) if u[1] in CV.FIGURE and u[2].get("bbox")]
+    return fb + ([r["bbox"]] if r.get("bbox") else [])
 
 
 def _block_words(pg, units):
@@ -120,13 +184,19 @@ def check(pdf_path, mdir, runs, layer_pages, work):
             words_of[pg_no] = _block_words(pg, units)
         raw = MR.unit(A[pg_no], r["block"])[1].get("content") or ""
         short = sum(c.isalnum() for c in r["text"]) < 4
-        placed = _place(raw, words_of[pg_no].get(r["block"], []), r["raw_span"])
+        own = words_of[pg_no].get(r["block"], [])
+        placed = _place(raw, own, r["raw_span"])
+        # a caption's or note's run that is not in its own box's words is looked for in the figure (its image blocks and
+        # the run's own box), not anywhere on the page: a panel letter 'C' or title 'Chemotherapy' read from a picture
+        # otherwise lands on '(C)' or 'chemotherapy' in the caption's sentences (11-02, path2space: 8 of 17 open runs)
+        figs = _figure_boxes(A[pg_no], r)
+        pool = [w for w in LY.words(pg) if figs is None or _in_boxes(w, pg, figs)]
         if not placed and not short:     # a panel letter matches anywhere on the page: only longer runs go free
-            placed = _place(raw, [(w[4], pymupdf.Rect(w[:4]), (w[5], w[6])) for w in LY.words(pg)], r["raw_span"], True)
+            placed = _place(raw, [(w[4], pymupdf.Rect(w[:4]), (w[5], w[6])) for w in pool], r["raw_span"], True)
         if not placed and short:
-            # a short label (panel letter 'B', 'a.'): placed at the one word of the page's layer that is it
+            # a short label (panel letter 'B', 'a.'): placed at the one word of the layer that is it
             key = "".join(c for c in r["text"] if c.isalnum())
-            hits = [w for w in LY.words(pg) if "".join(c for c in w[4] if c.isalnum()) == key]
+            hits = [w for w in pool if "".join(c for c in w[4] if c.isalnum()) == key]
             if len(hits) == 1:
                 w = hits[0]
                 rr = r["raw_span"]
@@ -143,8 +213,13 @@ def check(pdf_path, mdir, runs, layer_pages, work):
                 fb = [u[2]["bbox"] for u in MR.units(A[pg_no]) if u[1] in CV.FIGURE and u[2].get("bbox")]
                 if ptyp in CV.FIGURE and fb:
                     W, H = pg.rect.width, pg.rect.height
-                    clip = pymupdf.Rect(min(b[0] for b in fb) * W, min(b[1] for b in fb) * H,
-                                        max(b[2] for b in fb) * W, max(b[3] for b in fb) * H) & pg.rect
+                    # a box of its own that holds no layer word: the reader read the run from a picture right there (a
+                    # panel title or letter it set apart from the image blocks, which the union of those leaves out;
+                    # 11-02, path2space: 6 of 17 open runs), so that box is the crop
+                    bx = [r["bbox"]] if r.get("bbox") and not own else fb + ([r["bbox"]] if r.get("bbox") else [])
+                    pad = 8 if len(bx) == 1 else 0
+                    clip = pymupdf.Rect(min(b[0] for b in bx) * W - pad, min(b[1] for b in bx) * H - pad,
+                                        max(b[2] for b in bx) * W + pad, max(b[3] for b in bx) * H + pad) & pg.rect
                     if not clip.is_empty:
                         dpi = max(72, min(220, int(2200 * 72 / max(clip.width, clip.height))))
                         crop = work / "crops" / f"f{pg_no}.{r['block']}.{k}.png"
