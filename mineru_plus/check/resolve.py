@@ -142,8 +142,11 @@ def _jev_exact(items, placed, work):
 
 def _drops_letters(s, short="oxr", long="primary"):
     """OXR's letters and digits are a proper subsequence of the primary's (or short's of long's)"""
-    a = [c for c in s[long] if c.isalnum()]
-    b = [c for c in s[short] if c.isalnum()]
+    # a vulgar fraction the reading was normalised from ('¼' to '1⁄4') is one sign, not two digits (11-03, PTA-07: the
+    # layer's 'd ¼ 0:65' for 'd = 0.65', the font mapping '=' to '¼', against OXR's '= 0.65')
+    frac = lambda x: re.sub(r"\d+\s*⁄\s*\d+", "", x)
+    a = [c for c in frac(s[long]) if c.isalnum()]
+    b = [c for c in frac(s[short]) if c.isalnum()]
     # a side with no letter or digit lacks nothing, it reads other characters (11-02, PTA-07: OXR's '=' and '+'
     # against a layer whose font maps them to '1⁄4' and 'þ'; the layer was taken for the page)
     if not b or len(b) >= len(a):

@@ -377,3 +377,38 @@ def test_layer_word_kept_elsewhere_but_printed_in_a_gap_is_moved_into_it():
     words = [w(",", 275, 278), w("with", 283, 303), w("being", 341, 368), w("the", 374, 389),
              w("mean", 210, 237, 101), w("std", 259, 272, 101), w("count", 308, 336, 101), w("given", 72, 100, 120)]
     assert [x[4] for x in OM._line_order(words)] == [",", "with", "count", "being", "the", "mean", "std", "given"]
+
+
+def test_a_fraction_the_reading_was_normalised_from_is_no_digits():
+    from mineru_plus.check import resolve as RS
+    # 11-03, PTA-07: a font mapping '=' to '¼' and '.' to ':'; OXR lacks no digit the layer prints
+    assert not RS._drops_letters({"primary": "1 ⁄ 4 0:65", "oxr": "= 0.65"})
+    assert RS._drops_letters({"primary": "thecount", "oxr": "the"})
+
+
+def test_space_after_a_line_break_hyphen_both_readers_keep_is_dropped(tmp_path):
+    import json
+    import pymupdf
+    from mineru_plus.check import respace as RSP
+    doc = pymupdf.open()
+    pg = doc.new_page()
+    pg.insert_text((72, 72), "magnetic resonance imaging, T2WI = T2-")
+    pg.insert_text((72, 86), "weighted imaging, and T1- and T2-weighted")
+    pdf = tmp_path / "t.pdf"
+    doc.save(pdf)
+    text = "magnetic resonance imaging, T2WI = T2- weighted imaging, and T1- and T2-weighted"
+    mdir = tmp_path / "mineru"
+    mdir.mkdir()
+    (mdir / "structured_content.json").write_text(json.dumps({"pages": [{"page_idx": 0, "blocks": [
+        {"type": "text", "content": text, "bbox": [0, 0, 1, 1]}]}]}))
+    oxr = {1: [{"type": "Text", "content": "magnetic resonance imaging, T2WI = T2-weighted imaging, and T1- and "
+                                           "T2-weighted"}]}
+    md = RSP.apply(str(pdf), mdir, "# T\n\n" + text + "\n", {1}, oxr)[0]
+    assert "T2WI = T2-weighted imaging, and T1- and T2-weighted" in md     # 'T1- and' is no line break
+    assert RSP.apply(str(pdf), mdir, "# T\n\n" + text + "\n", {1}, None)[1] == []
+
+
+def test_margin_link_printed_as_its_address_once():
+    from mineru_plus import margins as MG
+    u = "https://doi.org/10.1016/j.cell.2026.04.023"
+    assert MG.LINK.sub(r"\1", f"[{u}]({u})") == u

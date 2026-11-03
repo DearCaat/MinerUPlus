@@ -18,6 +18,7 @@ MARGIN = ("header", "footer", "page_number", "aside_text", "page_footnote")
 NAMES = {"header": "header", "footer": "footer", "page_number": "page number", "aside_text": "side note",
          "page_footnote": "page footnote"}
 WS = re.compile(r"\s+")
+LINK = re.compile(r"\[([^\]]*)\]\(\1\)")
 
 
 def _same_words(lay, text):
@@ -91,9 +92,11 @@ def add(pdf, mdir, md, no_layer_pages=()):
                 continue
             lay = layer_tokens(pdf, pg, b["bbox"])
             # printed characters on both sides: markdown escapes and tags of the block dropped, spacing ignored
-            # (letter-spaced running heads split words differently on the layer)
+            # (letter-spaced running heads split words differently on the layer); a link printed as its address
+            # once ('[https://doi.org/…](https://doi.org/…)', 11-03 PTA-05 and PTA-10: taken for a badge)
+            shown = LINK.sub(r"\1", text)
             lc = "".join(c for w in lay for ch in w for c in DR._norm_char(ch))
-            bc = "".join(c for c, _ in DR.plain_map(text))
+            bc = "".join(c for c, _ in DR.plain_map(shown))
             if len(lc) < 0.5 * len(bc):               # little or nothing on the layer there: a logo or badge drawn as an image
                                             # (10-29: the CellPress logo holds only 'll' in its box)
                 stats["read from an image (little or no layer text in its box)"] += 1
@@ -112,7 +115,7 @@ def add(pdf, mdir, md, no_layer_pages=()):
                 issues.append({"kind": "margin text read from an image, not checked", "page": pg, "block": bi,
                                "type": b["type"], "text": text, "layer": " ".join(lay)[:500]})
                 continue
-            if lc == bc or _same_words(lay, text):
+            if lc == bc or _same_words(lay, shown):
                 stats["equal to the text layer"] += 1
             else:
                 stats["differs from the text layer"] += 1

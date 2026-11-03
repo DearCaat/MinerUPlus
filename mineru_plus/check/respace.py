@@ -20,12 +20,17 @@ A space before a comma, full stop, semicolon or colon is dropped where the layer
 and OXR reads it so: a layer can set a spacing accent and then a space glyph the page does not print ('Pare´' ','
 0.1 pt apart, 11-03 PTA-05 and PTA-10 references, read 'Paré , L.'). The compare reads no spaces around marks, so
 only the layer and OXR see it; with no OXR nothing is dropped and nothing reported, a space before a mark being no
-space inside a word."""
+space inside a word.
+
+So is a space after a hyphen where the layer breaks the line at that hyphen and OXR reads the word joined with it
+(11-03, PTA-08 supplement: 'T2- weighted' for the layer's 'T2-' | 'weighted', OXR 'T2-weighted'). Whether such a
+hyphen belongs to the word is the line-break spelling question (check/linebreak.py); this is only where both
+readers kept it."""
 import collections, re, unicodedata
 import pymupdf
 from ..readers import mineru as MR
 from .. import layer as LY
-from . import dropped as DR
+from . import dropped as DR, linebreak as LB
 from .two_readings import PRIMARY_PROSE
 from .resolve import _base
 
@@ -34,6 +39,7 @@ MARK = ",.;:"
 # the mark ends there: before a number it may be a reading's superscript run into it ('response ,39–44'), and
 # dropping the space would make one token of the two
 BEFORE_MARK = re.compile(r"([^\W\d_]+) ([,.;:])(?=[\s,.;:)\]]|$)")
+AFTER_HYPHEN = re.compile(r"([^\W_]+)- ([^\W_]+)")
 
 
 def _marks(pg):
@@ -57,7 +63,13 @@ def _marks(pg):
 def _oxr_marks(blocks):
     t = _base_text(" ".join(re.sub(r"<[^<>]*>", " ", b.get("content") or "") for b in blocks))
     return ({m.group(1) + m.group(2) for m in re.finditer(r"([^\W\d_]+)([,.;:])", t)},
-            {m.group(1) + m.group(2) for m in BEFORE_MARK.finditer(t)})
+            {m.group(1) + m.group(2) for m in re.finditer(r"([^\W\d_]+) ([,.;:])", t)}, t)
+
+
+def _breaks(pg):
+    """(left, right) of the words the layer breaks at a line-end hyphen, accents aside: the segment before the
+    hyphen, the letters and digits after the break"""
+    return {(_base(LB.DASH.split(l)[-1]), _base(re.match(r"[^\W_]*", r).group())) for l, r in LB.breaks(pg)}
 
 
 def _base_text(t):
@@ -96,7 +108,7 @@ def apply(pdf_path, mdir, md, layer_pages, second, reported=()):
             continue
         ows, orows = _oxr(second[pg_no]) if second and pg_no in second else (set(), set())
         omarks = _oxr_marks(second[pg_no]) if second and pg_no in second else None
-        lay = marks = None
+        lay = marks = brk = None
         for uid, typ, part in MR.units(blocks):
             if typ not in PRIMARY_PROSE:
                 continue
@@ -143,8 +155,16 @@ def apply(pdf_path, mdir, md, layer_pages, second, reported=()):
                 new = "".join(out) + cur[last:]
             if omarks:
                 if marks is None:
-                    marks = _marks(LY.page(pdf, pg_no - 1))
+                    marks, brk = _marks(LY.page(pdf, pg_no - 1)), _breaks(LY.page(pdf, pg_no - 1))
                 cut = []
+                for m in AFTER_HYPHEN.finditer(new):
+                    l, r = _base(m.group(1)), _base(m.group(2))
+                    if (l, r) in brk and not DR._in_math(new, m.start()) and f"{l}-{r}" in omarks[2] \
+                            and f"{l}- {r}" not in omarks[2]:
+                        cut.append(m.end(1) + 1)
+                        edits.append({"page": pg_no, "route": "spacing after a line-break hyphen (text layer)",
+                                      "by": "text layer", "old": m.group(0), "new": f"{m.group(1)}-{m.group(2)}"})
+                        n["spaces after a line-break hyphen dropped"] += 1
                 for m in BEFORE_MARK.finditer(new):
                     key = _base(m.group(1)) + m.group(2)
                     if DR._in_math(new, m.start()) or not (key in marks[0] and key not in marks[1]):
@@ -154,7 +174,7 @@ def apply(pdf_path, mdir, md, layer_pages, second, reported=()):
                         edits.append({"page": pg_no, "route": "spacing before a mark (text layer)", "by": "text layer",
                                       "old": m.group(0), "new": m.group(1) + m.group(2)})
                         n["spaces before a mark dropped"] += 1
-                for at in reversed(cut):
+                for at in sorted(cut, reverse=True):
                     new = new[:at] + new[at + 1:]
             if new != cur:
                 md = md.replace(cur, new, 1)
