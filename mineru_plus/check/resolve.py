@@ -340,6 +340,17 @@ def settle(pdf, subs, work, src=None, refs=None):
                 _layer_says(LY.page(doc, s["page"] - 1), s) == "primary":
             s["verdict"], s["by"] = "undecided", "vision judges against the text layer (spelling)"
             bys.pop(s["id"], None)
+        # a mark the vision judges read as a letter of its shape (11-03, PTA-05 mmc4: a '○' bullet as 'o'): where the
+        # layer prints the primary's mark between the same neighbours (spacing aside: '○Procedures' is one layer word)
+        # and not OXR's letter, the mark stands
+        if s.get("verdict") == "oxr" and s.get("route") == "characters" and s.get("left") and s.get("right"):
+            p, o = s.get("primary_shown") or "", s.get("oxr_shown") or ""
+            if p and o and not any(c.isalnum() for c in p) and all(c.isalnum() for c in o):
+                flat = "".join(w[4] for w in LY.words(LY.page(doc, s["page"] - 1)))
+                at = lambda x: s["left"][-1] + x + s["right"][0] in flat
+                if at(p) and not at(o):
+                    s["verdict"], s["by"] = "primary", "text layer (a mark the judges read as a letter)"
+                    bys.pop(s["id"], None)
         if s["id"] in bys:
             s["by"] = bys[s["id"]]
         if s["id"] in placed:

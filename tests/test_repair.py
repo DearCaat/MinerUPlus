@@ -214,3 +214,18 @@ def test_layer_words_out_of_line_order_are_not_placed(tmp_path):
     (tmp_path / "work" / "crops").mkdir(parents=True)
     found = [f for f in DR.find(str(pdf), mdir, tmp_path / "work") if f["insert"] == "R2"]
     assert found and not any(f["placeable"] for f in found)
+
+
+def test_logo_with_glyphs_drawn_as_curves_is_not_checked_by_its_layer_text():
+    import pymupdf
+    from mineru_plus import margins as MG
+    doc = pymupdf.open()
+    pg = doc.new_page()
+    pg.insert_text((100, 60), "ll", fontsize=16)
+    pg.draw_bezier((70, 62), (72, 44), (88, 44), (90, 62), fill=(0, 0, 0))    # 'Ce' drawn as a curve
+    box = pymupdf.Rect(65, 40, 140, 66)
+    assert MG._outlined(pg, box, pg.get_drawings())
+    plain = doc.new_page()
+    plain.insert_text((100, 60), "Article", fontsize=16)
+    plain.draw_line((65, 64), (200, 64))                                   # a rule under a running head
+    assert not MG._outlined(plain, box, plain.get_drawings())

@@ -337,8 +337,9 @@ def find(pdf_path, mdir, work, md=None):
                 if ctx_ok and op == "delete" and not (same(L[i1 - 1][1]) or (i2 < len(L) and same(L[i2][1]))):
                     ctx_ok = False
                 kl, kr = L[i1 - 1][1] if i1 > 0 else None, L[i2][1] if i2 < len(L) else None
-                if ctx_ok and op == "delete" and (kl is not None and kl not in ks and same(kl) and lw[kl][1].x1 > box.x0 + 1
-                                                   or kr is not None and kr not in ks and same(kr) and box.x1 > lw[kr][1].x0 + 1):
+                out_of_order = op == "delete" and (kl is not None and kl not in ks and same(kl) and lw[kl][1].x1 > box.x0 + 1
+                                                   or kr is not None and kr not in ks and same(kr) and box.x1 > lw[kr][1].x0 + 1)
+                if out_of_order:
                     ctx_ok = False
                 # dropped at the block start (an italic journal name, a footnote mark): placed before the block's
                 # first characters when at least 6 of them follow matched
@@ -373,7 +374,7 @@ def find(pdf_path, mdir, work, md=None):
                               "lay": "".join(c for c, _ in L[a:b]), "prim": prim_form, "lost": lost,
                               "insert": "".join(c for c, _ in L[i1:i2]), "insert_text": ins_text, "insert_src": "".join(Lsrc[i1:i2]),
                               "space_before": i1 > 0 and gap(i1), "space_after": i2 < len(L) and gap(i2),
-                              "starts_line": starts_line,
+                              "starts_line": starts_line, "out_of_order": out_of_order,
                               "located": located, "replaces": "".join(P[j1:j2]),
                               "raw_after": before, "raw_next": after_next, "raw_span": span, "placeable": ctx_ok,
                               "superscript": _superscript(pg, box), "bbox": list(box), "crop": str(crop),
@@ -504,6 +505,15 @@ def apply(md, pages, found, second=None):
     by_block = collections.defaultdict(list)
     for f in found:
         n[f["verdict"]] += 1
+        if f["verdict"] == "not printed" and f.get("out_of_order"):
+            # jev was shown the layer's words in the layer's order, which is not the line's here: its 'not printed'
+            # may be the order, and the words can be missing from the parse (11-03, PTA-11 MOESM1: 'with count
+            # being', 'count' in neither reading where it is printed, no issue)
+            n["not printed, the layer's order not the line's"] += 1
+            issues.append({"kind": "text layer not in the parse", "why": "the layer's word order is not the line's "
+                           "here (jev: not printed); check by hand", "page": f["page"], "layer": f["layer_words"],
+                           "parse": f["prim"], "crop": f["crop"]})
+            continue
         if f["verdict"] == "not printed":
             continue                                   # the layer is wrong there
         if f["verdict"] == "printed" and _doubled(f["layer_words"], f["prim"]):

@@ -12,6 +12,7 @@ from .readers import mineru as MR
 from .check.two_readings import toks, printed_map
 from .check import dropped as DR
 from .check.tables import layer_tokens
+from . import layer as LY
 
 MARGIN = ("header", "footer", "page_number", "aside_text", "page_footnote")
 NAMES = {"header": "header", "footer": "footer", "page_number": "page number", "aside_text": "side note",
@@ -29,6 +30,19 @@ def _same_words(lay, text):
 
 def _alnum(text):
     return "".join(c.lower() for c, _ in DR.plain_map(text) if c.isalnum())
+
+
+def _outlined(pg, r, drawings):
+    """glyphs drawn as curves in the box apart from its layer words: part of what the box prints is not in the layer
+    (11-03, PTA-05 and PTA-10: the CellPress logo draws 'Ce' and 'Press' as curves around a layer 'll', and the
+    block read 'll' matched the layer)"""
+    words = [pymupdf.Rect(w[:4]) for w in LY.words(pg, r)]
+    for d in drawings:
+        q = pymupdf.Rect(d["rect"])
+        if q.height >= 0.3 * r.height and (q & r).get_area() > 0.5 * q.get_area() and \
+                any(it[0] == "c" for it in d["items"]) and not any(q.intersects(w) for w in words):
+            return True
+    return False
 
 
 def add(pdf, mdir, md, no_layer_pages=()):
@@ -51,7 +65,7 @@ def add(pdf, mdir, md, no_layer_pages=()):
             used["s", k] += 1
             return True
         return False
-    lines, issues, stats = [], [], collections.Counter()
+    lines, issues, stats, drawn = [], [], collections.Counter(), {}
     for pg in sorted(pages):
         for bi, b in pages[pg]:
             if b["type"] not in MARGIN:
@@ -78,6 +92,16 @@ def add(pdf, mdir, md, no_layer_pages=()):
                 stats["read from an image (little or no layer text in its box)"] += 1
                 # written as read and reported: a badge's reading can be broken (11-02: 'heck k for' for the
                 # 'Check for updates' badge)
+                issues.append({"kind": "margin text read from an image, not checked", "page": pg, "block": bi,
+                               "type": b["type"], "text": text, "layer": " ".join(lay)[:500]})
+                continue
+            page = LY.page(pdf, pg - 1)
+            box = pymupdf.Rect(b["bbox"][0] * page.rect.width, b["bbox"][1] * page.rect.height,
+                               b["bbox"][2] * page.rect.width, b["bbox"][3] * page.rect.height) * page.derotation_matrix
+            if pg not in drawn:
+                drawn[pg] = page.get_drawings()
+            if _outlined(page, box, drawn[pg]):
+                stats["read from an image (glyphs drawn as curves beside the layer text in its box)"] += 1
                 issues.append({"kind": "margin text read from an image, not checked", "page": pg, "block": bi,
                                "type": b["type"], "text": text, "layer": " ".join(lay)[:500]})
                 continue
