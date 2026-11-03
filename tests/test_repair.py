@@ -368,3 +368,12 @@ def test_line_break_hyphen_set_apart_after_a_spacing_accent(tmp_path):
     assert ("Gonza", "lez") in bk
     # the split holds the reading's letters, which the repair finds in the block
     assert LB.is_linebreak({"primary": "Gonzá - lez", "oxr": "González"}, bk) == ("Gonzá", "lez", "Gonza")
+
+
+def test_layer_word_kept_elsewhere_but_printed_in_a_gap_is_moved_into_it():
+    from mineru_plus.check import omissions as OM
+    w = lambda t, x0, x1, y=100: (x0, y, x1, y + 10, t, 0, 0, 0)
+    # 11-03, PTA-11 MOESM1: the layer reads ', with being ... the' and then the formula and 'count' of that line
+    words = [w(",", 275, 278), w("with", 283, 303), w("being", 341, 368), w("the", 374, 389),
+             w("mean", 210, 237, 101), w("std", 259, 272, 101), w("count", 308, 336, 101), w("given", 72, 100, 120)]
+    assert [x[4] for x in OM._line_order(words)] == [",", "with", "count", "being", "the", "mean", "std", "given"]

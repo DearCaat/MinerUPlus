@@ -27,6 +27,48 @@ def _has(seq, sub):
     return any(seq[i:i + n] == sub for i in range(len(seq) - n + 1))
 
 
+def _same_line(p, q):
+    return min(p[3], q[3]) - max(p[1], q[1]) > 0.5 * min(p[3] - p[1], q[3] - q[1])
+
+
+def _line_order(words):
+    """the layer's words, those it keeps elsewhere but prints in the gap between two neighbours of one line moved
+    into that gap (11-03, PTA-11 MOESM1: a Word equation's '𝑐𝑜𝑢𝑛𝑡' printed between 'with' and 'being', kept by the layer
+    after the next line's formula; the primary dropped it there and nothing aligned it). A gap a word fits in is
+    wider than a space: under half the height no word is looked for. Only a word the layer sets apart from both its
+    neighbours is moved: one a space from its neighbour on its line is in its place ('with' after ',' stays, though
+    the layer's formula before them on that line leaves a gap it would fit)."""
+    near = lambda p, q: _same_line(p, q) and abs(q[0] - p[2]) <= 0.5 * (q[3] - q[1])
+    apart = [not any(0 <= k < len(words) and near(*sorted((words[j], words[k]), key=lambda w: w[0]))
+                     for k in (j - 1, j + 1)) for j in range(len(words))]
+    dest = {}
+    for i, (p, q) in enumerate(zip(words, words[1:])):
+        if q[0] - p[2] <= 0.5 * (q[3] - q[1]) or not _same_line(p, q):
+            continue
+        for j, w in enumerate(words):
+            if apart[j] and j not in (i, i + 1) and j not in dest and p[2] <= w[0] and w[2] <= q[0] \
+                    and _same_line(w, p) and _same_line(w, q):
+                dest[j] = i
+    if not dest:
+        return words
+    fills = {}
+    for j, i in dest.items():
+        fills.setdefault(i, []).append(j)
+    out, done = [], set()
+
+    def emit(i):                # a moved word can hold the next gap's words ('… std' ', with' '𝑐𝑜𝑢𝑛𝑡' 'being')
+        if i in done:
+            return
+        done.add(i)
+        out.append(words[i])
+        for j in sorted(fills.get(i, ()), key=lambda j: words[j][0]):
+            emit(j)
+    for i in range(len(words)):
+        if i not in dest:
+            emit(i)
+    return out
+
+
 def find(pdf, primary_dir, oxr_dir):
     A, B = MR.pages(primary_dir), OX.pages(oxr_dir)
     doc = pymupdf.open(pdf)
@@ -39,7 +81,7 @@ def find(pdf, primary_dir, oxr_dir):
         at = [t for t, _ in a]
         bt = _flat(toks(latex_plain(" ".join(x.get("content") or "" for x in B[pg] if x["type"] in OXR_PROSE))))
         lt, lw = [], []                     # layer tokens and the layer word each comes from
-        words = LY.words(LY.page(doc, pg - 1))
+        words = _line_order(LY.words(LY.page(doc, pg - 1)))
         for k, w in enumerate(words):
             for t in toks(w[4]):
                 lt.append(t); lw.append(k)
@@ -58,6 +100,9 @@ def find(pdf, primary_dir, oxr_dir):
             bi0 = a[i1][1]
             L = [t for t, u in a[max(0, i1 - 3):i1] if u == bi0]
             R = [t for t, u in a[i1:i1 + 3] if u == bi0]
+            # not across a formula's edge: the layer has no '$' (11-03, PTA-11 MOESM1: '$ , with | being')
+            L = L[max((k + 1 for k, t in enumerate(L) if PURE_MARKUP.fullmatch(t)), default=0):]
+            R = R[:next((k for k, t in enumerate(R) if PURE_MARKUP.fullmatch(t)), len(R))]
             want = _flat(L + ins + R)
             if not (_has(bt, want) and _has(_flat(lt), want)):
                 continue
