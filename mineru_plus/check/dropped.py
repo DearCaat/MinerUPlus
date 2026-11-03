@@ -234,23 +234,24 @@ def locate(md, raw):
             cur = md[s:e + 40]
             return cur if abs(len(cur) - len(raw)) < 0.1 * len(raw) else None
     # an earlier route edited the block's first or last characters (10-30: 'ρ' corrected near the end of an abstract,
-    # and the block's dropped brackets went unwritten): a block of one line is the line of full.md that holds the
-    # stretches of it found once, starting or ending as the block does
-    if "\n" in raw:
+    # and the block's dropped brackets went unwritten): the block is the run of whole lines of full.md around the
+    # stretches of it found once, in the block's order, as many lines as the block has, starting or ending as it does
+    # (11-03, PTA-05 mmc2: list markers written at the start of a list's lines, the first marker left unwritten)
+    at = [(i, md.find(raw[i:i + 40])) for i in range(0, len(raw) - 40, 20) if md.count(raw[i:i + 40]) == 1]
+    if not at or any(k2 <= k1 for (_, k1), (_, k2) in zip(at, at[1:])):
         return None
-    lines = set()
-    for i in range(0, len(raw) - 40, 20):
-        w = raw[i:i + 40]
-        if md.count(w) == 1:
-            k = md.find(w)
-            e = md.find("\n", k)
-            lines.add((md.rfind("\n", 0, k) + 1, len(md) if e == -1 else e))
-    if len(lines) != 1:
-        return None
-    s, e = lines.pop()
+    (i0, k0), (i1, k1) = at[0], at[-1]
+    s = md.rfind("\n", 0, k0) + 1
+    for _ in range(raw.count("\n", 0, i0)):
+        s = md.rfind("\n", 0, max(0, s - 1)) + 1
+    e = k1 + 39
+    for _ in range(raw.count("\n", i1 + 40) + 1):
+        e = md.find("\n", e + 1)
+        if e == -1:
+            e = len(md); break
     cur = md[s:e]
     ok = (cur.startswith(raw[:10]) or cur.endswith(raw[-10:])) and abs(len(cur) - len(raw)) < 0.1 * len(raw)
-    return cur if ok and md.count(cur) == 1 else None
+    return cur if ok and cur.count("\n") == raw.count("\n") and md.count(cur) == 1 else None
 
 
 def find(pdf_path, mdir, work, md=None):
@@ -327,8 +328,17 @@ def find(pdf_path, mdir, work, md=None):
                 ctx_ok = (i1 >= 6 or j1 >= 6) and i1 > 0 and j1 > 0
                 # and on the line of the matched character before or after them (10-30: a summation limit 's' of the
                 # displayed equation below was in the layer after the paragraph's last word, and was written there)
-                same = lambda k: min(box.y1, lw[k][1].y1) - max(box.y0, lw[k][1].y0) > 0.5 * min(box.height, lw[k][1].height)
+                # (word by word: the box of words on two lines overlaps any line between them), and on that line
+                # between them: the layer's order is not always the line's (11-03, PTA-11 MOESM1: 'log2(count+ 1) >
+                # mean + std, with count' opens a line, in italic math, and comes after the line's last word 'the'
+                # in the layer; it was written after 'the')
+                ov = lambda r, q: min(r.y1, q.y1) - max(r.y0, q.y0) > 0.5 * min(r.height, q.height)
+                same = lambda k: all(ov(lw[j][1], lw[k][1]) for j in ks)
                 if ctx_ok and op == "delete" and not (same(L[i1 - 1][1]) or (i2 < len(L) and same(L[i2][1]))):
+                    ctx_ok = False
+                kl, kr = L[i1 - 1][1] if i1 > 0 else None, L[i2][1] if i2 < len(L) else None
+                if ctx_ok and op == "delete" and (kl is not None and kl not in ks and same(kl) and lw[kl][1].x1 > box.x0 + 1
+                                                   or kr is not None and kr not in ks and same(kr) and box.x1 > lw[kr][1].x0 + 1):
                     ctx_ok = False
                 # dropped at the block start (an italic journal name, a footnote mark): placed before the block's
                 # first characters when at least 6 of them follow matched
@@ -341,6 +351,9 @@ def find(pdf_path, mdir, work, md=None):
                 # the lost characters as printed: spaces between layer words (not across a line-break hyphen) and
                 # whether a space separates them from the text before and after
                 gap = lambda i: L[i - 1][1] != L[i][1] and not lw[L[i - 1][1]][2]
+                # dropped characters the layer prints on the line of what follows, not of what precedes: they open
+                # that line (11-03, PTA-05 mmc2: list markers '●' '➢' written at the end of the line before)
+                starts_line = op == "delete" and 0 < i1 and i2 < len(L) and not same(L[i1 - 1][1]) and same(L[i2][1])
                 ins_text = "".join((" " if i > i1 and gap(i) else "") + Lsrc[i] for i in range(i1, i2))
                 fid = f"r{pg_no}.{uid}.{n}"
                 crop = work / "crops" / f"{fid}.png"
@@ -360,6 +373,7 @@ def find(pdf_path, mdir, work, md=None):
                               "lay": "".join(c for c, _ in L[a:b]), "prim": prim_form, "lost": lost,
                               "insert": "".join(c for c, _ in L[i1:i2]), "insert_text": ins_text, "insert_src": "".join(Lsrc[i1:i2]),
                               "space_before": i1 > 0 and gap(i1), "space_after": i2 < len(L) and gap(i2),
+                              "starts_line": starts_line,
                               "located": located, "replaces": "".join(P[j1:j2]),
                               "raw_after": before, "raw_next": after_next, "raw_span": span, "placeable": ctx_ok,
                               "superscript": _superscript(pg, box), "bbox": list(box), "crop": str(crop),
@@ -410,6 +424,8 @@ def _edit_plain(raw, f):
             return None
         if f["raw_after"] is None:
             at = f["raw_next"]                     # at the block start, before its first characters
+        elif f.get("starts_line") and f.get("raw_next") is not None and "\n" in raw[f["raw_after"]:f["raw_next"]]:
+            at = f["raw_next"]                     # printed at the start of the next line (a list marker)
         elif ins and all(c in OPENING for c in ins) and f.get("raw_next") is not None:
             at = f["raw_next"]                     # an opening bracket belongs to what follows
             k = raw.rfind("$", 0, at)

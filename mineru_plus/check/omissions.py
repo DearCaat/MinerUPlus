@@ -67,11 +67,19 @@ def find(pdf, primary_dir, oxr_dir):
             for t, k in zip(ins, lw[j1:j2]):
                 text += sep(prev, k) + t; prev = k
             text += sep(prev, lw[j2]) if j2 < len(lw) else " "
+            # a run the layer prints at the start of the right neighbour's line (a list marker), not at the end of the
+            # left neighbour's: written after the primary's line break (11-03, PTA-05 mmc2: 'Death; ➢' for '➢ Life')
+            # (by the words' heights: a marker is often a line of its own in the layer's structure)
+            def same_line(k1, k2):
+                a0, a1, b0, b1 = words[k1][1], words[k1][3], words[k2][1], words[k2][3]
+                return min(a1, b1) - max(a0, b0) > 0.5 * min(a1 - a0, b1 - b0)
+            starts_line = j1 > 0 and j2 < len(lw) and not same_line(lw[j1], lw[j1 - 1]) and same_line(lw[j2 - 1], lw[j2])
             bi = a[i1][1]; typ, blk = MR.unit(A[pg], bi)
             out.append({"kind": "content", "source": "text layer and OXR", "page": pg, "blocks": [bi],
                         "bbox": blk.get("bbox"), "block_type": typ, "pos_in_block": pos_in_block(a, i1),
                         "primary": " ".join(anchors), "oxr": " ".join([anchors[0]] + ins + [anchors[1]]),
                         "primary_toks": anchors, "oxr_toks": [anchors[0]] + ins + [anchors[1]], "insert": text,
+                        "starts_line": starts_line,
                         "left": at[max(0, i1 - 9):i1 - 1], "right": at[i1 + 1:i1 + 9],
                         "context": " ".join(at[max(0, i1 - 9):i1]) + " [+" + " ".join(ins) + "+] " + " ".join(at[i1:i1 + 8])})
     return out

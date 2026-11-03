@@ -64,6 +64,8 @@ def _new_span(span_text, s):
         m1 = re.compile(re.escape(s["primary_toks"][0])).search(span_text)
         m2 = re.compile(re.escape(s["primary_toks"][1])).search(span_text, m1.end())
         gap = span_text[m1.end():m2.start()]      # the primary's own separator (a space, or a newline between items)
+        if "\n" in gap and s.get("starts_line"):
+            return span_text[:m2.start()] + s["insert"].lstrip() + span_text[m2.start():]
         if s["insert"].endswith(" "):
             return span_text[:m1.end()] + s["insert"].rstrip() + (gap or " ") + span_text[m2.start():]
         return span_text[:m1.end()] + s["insert"] + span_text[m2.start():]

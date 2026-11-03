@@ -176,3 +176,41 @@ def test_formula_letter_written_in_place_unless_the_formula_is_retyped():
     assert DR._edit_plain(raw, dict(f, retype_ok=True)) is None             # the retype writes it with the rest
     c = raw.index('frac') + 1
     assert DR._edit_plain(raw, {'insert': 'x', 'replaces': 'r', 'raw_span': [c, c + 1]}) is None   # a command name
+
+
+def test_list_markers_open_their_lines():
+    from mineru_plus.check import dropped as DR
+    raw = ("Death;\nLife is in danger;\nResulting in hospitalization or prolonged hospitalization;\n"
+           "Permanent or severely disabled;\nCongenital malformations/defects, significant medical events.")
+    s = {"route": "omission", "primary_toks": ["danger;", "Resulting"], "insert": " \u27a2 ", "starts_line": True}
+    assert RP._new_span("danger;\nResulting", s) == "danger;\n\u27a2 Resulting"
+    assert RP._new_span("danger;\nResulting", dict(s, starts_line=False)) == "danger; \u27a2\nResulting"
+    edited = raw.replace("\n", "\n\u27a2 ")
+    md = "## 14.3 Serious Adverse Events\n\n" + edited + "\n\n## 14.4 Avenues"
+    assert DR.locate(md, raw) == edited                   # the block's first characters edited by an earlier route
+    f = {"insert": "\u27a2", "insert_text": "\u27a2", "raw_span": None, "raw_after": 5, "raw_next": 7,
+         "starts_line": True, "space_before": True, "space_after": True}
+    assert DR._edit_plain(raw, f)[0].startswith("Death;\n\u27a2 Life")
+
+
+def test_layer_words_out_of_line_order_are_not_placed(tmp_path):
+    """a symbol the layer holds after the line's last word, printed at the line's start, is not written after that
+    word"""
+    import json
+    import pymupdf
+    from mineru_plus.check import dropped as DR
+    doc = pymupdf.open()
+    pg = doc.new_page()
+    pg.insert_text((90, 100), "indicates the Pearson correlation coefficient and the")
+    pg.insert_text((72, 100), "R2")                     # drawn after the line: after 'the' in the layer, first on it
+    pg.insert_text((72, 130), "associated two-sided p-value for the null hypothesis.")
+    pdf = tmp_path / "x.pdf"
+    doc.save(pdf)
+    md = "indicates the Pearson correlation coefficient and the associated two-sided p-value for the null hypothesis."
+    mdir = tmp_path / "mineru"
+    mdir.mkdir()
+    (mdir / "structured_content.json").write_text(json.dumps({"pages": [{"page_idx": 0, "blocks": [
+        {"type": "text", "content": md, "bbox": [0.05, 0.05, 0.95, 0.3]}]}]}))
+    (tmp_path / "work" / "crops").mkdir(parents=True)
+    found = [f for f in DR.find(str(pdf), mdir, tmp_path / "work") if f["insert"] == "R2"]
+    assert found and not any(f["placeable"] for f in found)
