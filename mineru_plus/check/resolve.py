@@ -20,7 +20,7 @@ Disagreements in spacing or markup only are not judged (form, not content).
 import base64, re, unicodedata
 from pathlib import Path
 import pymupdf
-from . import jev, gemini, linebreak as LB, two_readings as TR
+from . import jev, gemini, linebreak as LB, two_readings as TR, dropped as DR
 from .. import layer as LY
 
 CHAR_INSTR = ("The image is part of one page of a scientific paper. Two programs read the same passage of this page and "
@@ -155,14 +155,38 @@ def _drops_letters(s, short="oxr", long="primary"):
 _PAGE_WORDS = {}
 
 
-def _layer_spacing_says(pg, s):
-    """'oxr' where OXR's words are all words of the page's layer and the primary's are not"""
+def _base(t):
+    """a word's letters without accents: a layer that sets an accent as a spacing glyph ('Mun˜oz') and a reading
+    that composes it ('Muñoz') compare equal"""
+    return "".join(x for c in unicodedata.normalize("NFKC", t) for x in DR._norm_char(c))
+
+
+def _page_words(pg):
+    """the page's layer words (accents aside, edge punctuation off); words on one line that touch (a gap under a
+    tenth of their height) are one word: a layer can break a word after a spacing accent ('Mun˜' 'oz,', 0.03 pt
+    apart, 11-03 PTA-05)"""
     key = (pg.parent.name, pg.number)
     if key not in _PAGE_WORDS:
-        _PAGE_WORDS[key] = {LB.EDGE.sub("", unicodedata.normalize("NFKC", w[4])) for w in LY.words(pg)}
-    ws = _PAGE_WORDS[key]
-    a = [t for t in (LB.EDGE.sub("", x) for x in unicodedata.normalize("NFKC", s["primary"]).split()) if t]
-    b = [t for t in (LB.EDGE.sub("", x) for x in unicodedata.normalize("NFKC", s["oxr"]).split()) if t]
+        merged = []
+        for w in LY.words(pg):
+            p = merged[-1] if merged else None
+            if p and abs(p[3] - w[3]) < 0.2 * (w[3] - w[1]) and 0 <= w[0] - p[2] < 0.1 * (w[3] - w[1]):
+                merged[-1] = (p[0], p[1], w[2], w[3], p[4] + w[4], p[5], p[6])
+            else:
+                merged.append(tuple(w[:7]))
+        # and each part of a word joined by hyphens, dots, slashes or underscores ('Lu¨dtke-Heckenkamp' holds
+        # 'Ludtke'; 'transneo-diagnosis-MLscores.tsv' holds 'MLscores', which is then no 'ML scores')
+        _PAGE_WORDS[key] = {_base(LB.EDGE.sub("", x)) for w in merged
+                            for x in [w[4], *re.split(r"[-‐‑./_:]", w[4])]}
+    return _PAGE_WORDS[key]
+
+
+def _layer_spacing_says(pg, s):
+    """'oxr' where OXR's words are all words of the page's layer and the primary's are not; 'primary' the other way"""
+    ws = _page_words(pg)
+    a = [_base(t) for t in (LB.EDGE.sub("", x) for x in unicodedata.normalize("NFKC", s["primary"]).split()) if t]
+    b = [_base(t) for t in (LB.EDGE.sub("", x) for x in unicodedata.normalize("NFKC", s["oxr"]).split()) if t]
+    a, b = [t for t in a if t], [t for t in b if t]
     # words of letters only: spacing around punctuation and superscript numbers is markup's ('Shulman,<sup>1,26</sup>'
     # read 'Shulman , 1,26'), not a word the reader cut
     if not (a and b and all(t.isalpha() for t in a + b)):
@@ -171,7 +195,18 @@ def _layer_spacing_says(pg, s):
     if len(b) >= len(a) and any(len(t) == 1 for t in b):
         return None
     # a single letter of the primary is a piece, not a word ('F. H e' for 'F. He')
-    return "oxr" if all(t in ws for t in b) and not all(t in ws and len(t) > 1 for t in a) else None
+    if all(t in ws for t in b) and not all(t in ws and len(t) > 1 for t in a):
+        return "oxr"
+    return "primary" if all(t in ws and len(t) > 1 for t in a) and not all(t in ws for t in b) else None
+
+
+def _splits_word(s):
+    """the primary has a space inside a word OXR reads whole: the same letters, more tokens"""
+    a, b = s["primary"].split(), s["oxr"].split()
+    # the tokens are split at underscores too; only a space in the primary's own text is one ('min_dist' is no
+    # space, 11-03: OXR read 'mindist')
+    spaced = re.fullmatch(r"[^\W\d_]+(?:\s+[^\W\d_]+)+", s.get("primary_text") or s["primary"])
+    return bool(spaced) and len(a) > len(b) and all(t.isalpha() for t in a + b) and "".join(a) == "".join(b)
 
 
 def _latin(c):
@@ -217,8 +252,13 @@ def settle(pdf, subs, work, src=None, refs=None):
             # is not (11-02, PTA-05: MinerU 4.1.2 wrote 'confidence i nterval', 'occu rri ng i n', 'C I' where the
             # layer has the words whole; words it glued, 'patientsUCMC'). A layer that splits words itself
             # (letter-spaced fonts) holds the pieces, and nothing is decided
-            if _layer_spacing_says(LY.page(doc, s["page"] - 1), s) == "oxr":
+            says = _layer_spacing_says(LY.page(doc, s["page"] - 1), s)
+            if says == "oxr":
                 s["route"], s["verdict"], s["by"] = "spacing", "oxr", "text layer (word spacing)"
+            elif says is None and _splits_word(s):
+                # a space inside a word is an error (文浩 11-03: 'g rade', 'occu rri ng' 「算错」, they break search
+                # and quotation checks); where the layer does not decide it is reported, not passed as form
+                s["route"], s["verdict"], s["by"] = "spacing", "undecided", "the text layer does not decide"
             else:
                 s["route"], s["verdict"] = "form only", "no action"
             continue

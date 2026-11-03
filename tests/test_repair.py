@@ -246,11 +246,12 @@ def test_words_broken_by_spaces_are_joined_where_layer_and_oxr_have_the_word(tmp
     (mdir / "structured_content.json").write_text(json.dumps({"pages": [{"page_idx": 0, "blocks": [
         {"type": "table_footnote", "content": text, "bbox": [0, 0, 1, 1]}]}]}))
     oxr = {1: [{"type": "Table", "content": "<td>grade 1-2 occurring in patients are listed log in to</td>"}]}
-    md, edits, joined, _ = RSP.apply(str(pdf), mdir, "# T\n\n" + text + "\n", {1}, oxr)
+    md, edits, issues, joined, _ = RSP.apply(str(pdf), mdir, "# T\n\n" + text + "\n", {1}, oxr)
     assert "of grade 1-2 occurring in patients are listed log in to" in md       # 'in to' printed apart stays
-    assert RSP.apply(str(pdf), mdir, "# T\n\n" + text + "\n", {1}, None)[1] == []  # no second reading, no join
+    md2, edits2, issues2, _, _ = RSP.apply(str(pdf), mdir, "# T\n\n" + text + "\n", {1}, None)
+    assert edits2 == [] and {i["text"] for i in issues2} == {"g rade", "occu rri ng", "i n", "l isted"}  # reported
     glued = {1: [{"type": "Text", "content": "g rade 1-2 occu rri ng i n patients are l isted"}]}
-    assert RSP.apply(str(pdf), mdir, "# T\n\n" + text + "\n", {1}, glued)[1] == []
+    assert RSP.apply(str(pdf), mdir, "# T\n\n" + text + "\n", {1}, glued)[1:3] == ([], [])   # OXR reads them apart
 
 
 def test_running_head_equal_to_a_heading_elsewhere_is_kept(tmp_path):
@@ -270,3 +271,22 @@ def test_running_head_equal_to_a_heading_elsewhere_is_kept(tmp_path):
         {"page_idx": 1, "blocks": [{"type": "paragraph_title", "content": "Article", "bbox": [0.1, 0.2, 0.3, 0.25]}]}]}))
     md, _, _ = MG.add(str(pdf), mdir, "## Article\n\nBody text.\n")
     assert "- p1 header: Article" in md
+
+
+def test_space_inside_a_word_the_layer_does_not_decide_is_reported(tmp_path):
+    import pymupdf
+    from mineru_plus.check import resolve as RS
+    doc = pymupdf.open()
+    pg = doc.new_page()
+    # a spacing accent and a space, then the rest of the name drawn over the space (11-03, PTA-05: 'Ku¨' 'mmel,')
+    pg.insert_text((72, 72), "Ku\u00a8 ")
+    pg.insert_text((72 + pymupdf.get_text_length("Ku\u00a8", fontsize=11), 72), "mmel, M., and others")
+    pg.insert_text((72, 100), "Galva\u00b4 ")
+    pg.insert_text((72 + pymupdf.get_text_length("Galva\u00b4 ", fontsize=11) + 3, 100), "n, L.")    # apart
+    pdf = tmp_path / "a.pdf"
+    doc.save(pdf)
+    pg = pymupdf.open(pdf)[0]
+    assert RS._layer_spacing_says(pg, {"primary": "K\u00fc mmel", "oxr": "K\u00fcmmel"}) == "oxr"
+    assert RS._layer_spacing_says(pg, {"primary": "Galv\u00e1 n", "oxr": "Galv\u00e1n"}) is None   # reported
+    assert RS._splits_word({"primary": "Ferná ndez", "oxr": "Fernández"})
+    assert not RS._splits_word({"primary": "patients UCMC", "oxr": "patientsUCMC2"})

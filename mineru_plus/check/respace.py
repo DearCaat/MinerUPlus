@@ -10,7 +10,11 @@ the tokens one after another, at least one token is no layer word of the page (a
 wherever it put the passage, has the joined word on the page and not the tokens one after another: the layer is the
 document's own text, so 'in to' stays where the layer prints 'in' 'to', and 'g rade' becomes 'grade' where it
 prints only 'grade'. OXR is asked because some layers run words together without spaces (11-03, PTA-07, PTA-09,
-PTA-11: 'theirutilityforROR' a layer word, 'their utility for ROR' joined); without OXR nothing is joined."""
+PTA-11: 'theirutilityforROR' a layer word, 'their utility for ROR' joined); without OXR nothing is joined.
+
+A space inside a word is an error (文浩 11-03, 「算错」: it breaks search and quotation checks). Where the layer
+points to one and OXR neither confirms the word nor reads the pieces apart (no OXR, or OXR left the passage out),
+it is reported."""
 import collections, re, unicodedata
 import pymupdf
 from ..readers import mineru as MR
@@ -22,11 +26,13 @@ LETTERS = re.compile(r"[^\W\d_]+")
 
 
 def _layer(pg):
-    """the page's letter runs in layer order, their set, and the runs of 2-4 that follow one another"""
+    """the page's letter runs in layer order, their set, the runs of 2-4 that follow one another, and whether the
+    layer runs words together (more than one run in twenty of over 15 letters: 'theirutilityforROR')"""
     seq = []
     for w in LY.words(pg):
         seq += LETTERS.findall(unicodedata.normalize("NFKC", w[4]))
-    return _rows(seq)
+    glued = len(seq) > 0 and sum(len(t) > 15 for t in seq) > 0.05 * len(seq)
+    return (*_rows(seq), glued)
 
 
 def _oxr(blocks):
@@ -40,16 +46,15 @@ def _rows(seq):
     return set(seq), {" ".join(seq[i:i + n]) for n in (2, 3, 4) for i in range(len(seq) - n + 1)}
 
 
-def apply(pdf_path, mdir, md, layer_pages, second):
-    """(md, edits, joined, counts): joined maps (page, block) to the tokens joined there; second: OXR pages or None"""
+def apply(pdf_path, mdir, md, layer_pages, second, reported=()):
+    """(md, edits, issues, joined, counts): joined maps (page, block) to the tokens joined there; second: OXR pages
+    or None; reported: (page, primary text) of spacing questions the two readings raised already"""
     pdf = pymupdf.open(pdf_path)
-    edits, joined, n = [], collections.defaultdict(list), collections.Counter()
-    if second is None:
-        return md, edits, joined, dict(n)
+    edits, issues, joined, n = [], [], collections.defaultdict(list), collections.Counter()
     for pg_no, blocks in sorted(MR.pages(mdir).items()):
-        if pg_no not in layer_pages or pg_no not in second:
+        if pg_no not in layer_pages:
             continue
-        ows, orows = _oxr(second[pg_no])
+        ows, orows = _oxr(second[pg_no]) if second and pg_no in second else (set(), set())
         lay = None
         for uid, typ, part in MR.units(blocks):
             if typ not in PRIMARY_PROSE:
@@ -60,7 +65,7 @@ def apply(pdf_path, mdir, md, layer_pages, second):
                 continue
             if lay is None:
                 lay = _layer(LY.page(pdf, pg_no - 1))
-            ws, rows = lay
+            ws, rows, glued = lay
             toks = [(m.start(), m.end(), m.group(0)) for m in LETTERS.finditer(cur)]
             new, i, out, last = cur, 0, [], 0
             while i < len(toks):
@@ -72,22 +77,31 @@ def apply(pdf_path, mdir, md, layer_pages, second):
                         continue
                     pieces = [t for _, _, t in run]
                     word = "".join(pieces)
-                    if word in ws and word in ows and " ".join(pieces) not in rows and \
-                            " ".join(pieces) not in orows and any(p not in ws for p in pieces):
-                        out.append(cur[last:run[0][0]] + word)
-                        last = run[-1][1]
-                        joined[(pg_no, uid)] += pieces
-                        edits.append({"page": pg_no, "route": "spacing (text layer)", "by": "text layer",
-                                      "old": " ".join(pieces), "new": word})
-                        n["words joined"] += 1
+                    spaced = " ".join(pieces)
+                    if not (word in ws and spaced not in rows and any(p not in ws for p in pieces)) or spaced in orows:
+                        continue
+                    if word not in ows:
+                        if not glued and not any(pg == pg_no and spaced in prim for pg, prim in reported):
+                            n["spaces inside a word reported"] += 1
+                            issues.append({"kind": "a space inside a word", "page": pg_no, "block": uid,
+                                           "text": spaced, "layer": word,
+                                           "why": "the text layer has the word whole; OXR does not confirm it"})
                         i += k
                         break
+                    out.append(cur[last:run[0][0]] + word)
+                    last = run[-1][1]
+                    joined[(pg_no, uid)] += pieces
+                    edits.append({"page": pg_no, "route": "spacing (text layer)", "by": "text layer",
+                                  "old": " ".join(pieces), "new": word})
+                    n["words joined"] += 1
+                    i += k
+                    break
                 else:
                     i += 1
             if out:
                 new = "".join(out) + cur[last:]
                 md = md.replace(cur, new, 1)
-    return md, edits, joined, dict(n)
+    return md, edits, issues, joined, dict(n)
 
 
 def covers(run, joined):

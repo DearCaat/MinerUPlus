@@ -108,7 +108,7 @@ def plan(s):
     if s["route"] == "form only":
         return "keep"
     if s["route"] == "spacing":
-        return "edit" if v == "oxr" else "keep"
+        return "edit" if v == "oxr" else "open: a space inside a word, not settled" if v == "undecided" else "keep"
     if s["route"] == "omission":
         return "edit"
     if s["route"] == "line-break hyphen":

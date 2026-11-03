@@ -301,8 +301,10 @@ def _parse(pdf, out, src, source=None):
     md, edits, open_items = RP.apply(md0, MR.pages(mdir), subs)
     # words the primary broke with spaces, joined where the page's layer has the word and never its pieces in a row
     # (check/respace.py); their pieces are no longer text only the primary read
-    md, sedits, joined, scount = RSP.apply(pdf, mdir, md, layer_pages, oxp)
+    md, sedits, sissues, joined, scount = RSP.apply(pdf, mdir, md, layer_pages, oxp,
+                                                    {(s["page"], s["primary"]) for s in subs if s.get("route") == "spacing"})
     edits += sedits
+    issues += sissues
     unread = [r for r in unread if not RSP.covers(r, joined)]
     checks["respace"] = {**scount, "summary": f"{scount.get('words joined', 0)} words the primary broke with spaces "
                                                f"joined where the text layer and OXR have the word"}
