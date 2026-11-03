@@ -50,7 +50,7 @@ MinerU 读成 `Estained`，OXR 读成 `E - stained`，页面上印的是跨行�
 
 11 pages; every page has a text layer.
 Readers: oxr, mineru.
-Figure transcriptions: 4 (figures.json), 4 moved out of full.md; 0/215 of their tokens are printed in the figure's ...
+Figures: 4 (figures.json: page, box, image); a picture's text is not read: 4 transcriptions the reader ...
 
 ## Measured on this document
 - dropped: 7 places where the text layer has characters the primary lacks: jev reads the layer's form on the page ...
@@ -61,7 +61,6 @@ Figure transcriptions: 4 (figures.json), 4 moved out of full.md; 0/215 of their 
 ...
 ## Not checked
 - page headers, footers and page numbers: checked against the text layer only (coverage); a broken layer there is ...
-- figure transcriptions beyond the printed labels (figures.json): the reader's estimate
 
 ## Open issues: 1 (issues.json)
 ```
@@ -116,7 +115,8 @@ Figure transcriptions: 4 (figures.json), 4 moved out of full.md; 0/215 of their 
 - **判定器只答封闭题，而且看的是页面图像**：每题两种选项顺序各问一次，两次一致才算定下。
 - **判定器只看核过的截图**：截图位置由文本层定，然后先问判定器这张图是否完整显示了这段文字（前 2 个词、有争议的部分、后 2 个词）。不通过就扩大再问；没有一张通过，这一处就不判，作为未决问题交还。37 篇论文的 396 处里，380 张截图通过；没通过的 16 处大多本来就没东西可截（页面上不印的符号、图里的文字）。
 - **"定不了"是合法答案**：它附截图交还给调用方，不去猜。
-- **没查的也说**：图里文字以外的内容、没有文本层的页面，都写进报告的"未核对"一节。
+- **没查的也说**：没有文本层的页面写进报告的"未核对"一节。
+- **不读图**：读取器对图的转写从 full.md 移出、不保留；页边的 logo 和徽标（由 jev 与印刷文字区分）不收。
 
 ## 输出
 
@@ -132,7 +132,7 @@ Figure transcriptions: 4 (figures.json), 4 moved out of full.md; 0/215 of their 
 | `sections.json` | 章节：标题、层级（按标题编号的深度定）、页码范围 |
 | `quote_index.json` | 每节原文和去空白后的版本，供逐字核对引文 |
 | `positions.json` | `full.md` 每段文字印在 PDF 的哪里：字符偏移 → 页码和每行一个框；文字层有这些词时精确到词 |
-| `figures.json` | 读取器找到的每一张图和图表及其图片；读取器给了转写的，附转写，以及其中哪些是页面上印出的字、哪些是读取器的估计 |
+| `figures.json` | 读取器找到的每一张图和图表：页、框、图片；不含读取器对图的转写 |
 | `checks/` | 每处不一致的处理路径、判定和依据；`edits.json`；判定器的请求和截图 |
 | `readers/` | 两个读取器的原始输出，未经改动 |
 

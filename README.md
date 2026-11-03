@@ -64,7 +64,7 @@ It goes back to the caller as an open issue, with the crop
 
 11 pages; every page has a text layer.
 Readers: oxr, mineru.
-Figure transcriptions: 4 (figures.json), 4 moved out of full.md; 0/215 of their tokens are printed in the figure's ...
+Figures: 4 (figures.json: page, box, image); a picture's text is not read: 4 transcriptions the reader ...
 
 ## Measured on this document
 - dropped: 7 places where the text layer has characters the primary lacks: jev reads the layer's form on the page ...
@@ -75,7 +75,6 @@ Figure transcriptions: 4 (figures.json), 4 moved out of full.md; 0/215 of their 
 ...
 ## Not checked
 - page headers, footers and page numbers: checked against the text layer only (coverage); a broken layer there is ...
-- figure transcriptions beyond the printed labels (figures.json): the reader's estimate
 
 ## Open issues: 1 (issues.json)
 ```
@@ -138,8 +137,9 @@ Design rules:
   as an open issue. On 396 passages of 37 papers, 380 crops passed; most of the 16 that did not had nothing to show
   (a symbol the page does not print, text inside a figure).
 - **"Undecided" is a valid answer.** It goes back to the calling agent with a crop instead of being guessed.
-- **Report what was not checked.** Figure transcriptions beyond printed labels, and pages with no text layer, are
-  listed in the report as unchecked.
+- **Report what was not checked.** Pages with no text layer are listed in the report as unchecked.
+- **A picture's text is not read.** The reader's transcriptions of figures are taken out of full.md and not kept,
+  and logos and badges in the margins (jev tells them from printed text) are left out.
 
 ## Output
 
@@ -153,7 +153,7 @@ One PDF in, one directory out:
 | `sections.json` | sections with title, level (from the heading's numbering) and page range |
 | `quote_index.json` | per-section text and whitespace-normalised text, for verbatim quote checks |
 | `positions.json` | where each stretch of `full.md` is printed in the PDF: character offsets → page and one box per printed line, word by word where the text layer has the words |
-| `figures.json` | every figure and chart the reader found, with its image; where the reader transcribed it, the transcription and how much of it is printed text and how much the reader's estimate |
+| `figures.json` | every figure and chart the reader found: page, box and image; not the reader's transcription of it |
 | `checks/` | every disagreement with its route, verdict and source; `edits.json`; judge requests and crops |
 | `readers/` | the untouched output of both readers |
 

@@ -41,8 +41,7 @@ class ReportBackendsTest(unittest.TestCase):
         """The fields render() reads, with the backend section built from the config as run() builds it."""
         return {"version": "0.5.5", "input": "/nonexistent/paper.pdf",
                 "scope": {"pages": 1, "pages_without_text_layer": [], "blocks_by_type": {}}, "readers": {},
-                "figures": {"transcriptions": 0, "moved_out_of_text": 0, "tokens": 0, "tokens_printed": 0,
-                            "figures_without_text_layer": 0},
+                "figures": {"figures": 0, "transcriptions_dropped": 0, "figures_without_text_layer": 0},
                 "checks": {}, "backends": run.backend_report(), "calibration": {"example": "a calibration line"},
                 "unchecked": [], "open_issues": 0}
 

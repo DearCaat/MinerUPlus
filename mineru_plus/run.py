@@ -4,7 +4,8 @@
   out/readers/mineru/         primary reader output, untouched (primary reading)
   out/readers/oxr/            OXR output, untouched (independent visual reading)
   out/full.md                 the parse: primary reading, figure transcriptions moved out, settled disagreements written in
-  out/figures.json            the reader's transcriptions of figures and charts, with how much of each is printed text
+  out/figures.json            the figures and charts the reader found: page, box, image; their text is not read (a
+                              picture's text: the reader's transcriptions are taken out of full.md and not kept)
   out/positions.json          where full.md is printed: page and word boxes for each passage (positions.py; look up a
                               quote with python -m mineru_plus.positions OUT_DIR "quote")
   out/checks/                 disagreements of the two readings with their route, verdict and plan; jev requests
@@ -470,7 +471,6 @@ def _parse(pdf, out, src, source=None):
         checks["characters"]["left_open"] = lo = sum(i["kind"] == "disagreement" for i in issues)
         checks["characters"]["summary"] += f"; {later} of the open ones settled by later steps, {lo} remain open"
         (out / "checks" / "disagreements.json").write_text(json.dumps(subs, ensure_ascii=False, indent=1))
-    unchecked.append("figure transcriptions beyond the printed labels (figures.json): the reader's estimate")
     md, nt = TR.tidy_math(md)            # numbers and styled words in formulas spelled as printed (rendering unchanged)
     checks["formula_spacing"] = {"formulas": nt, "summary": f"{nt} formulas respelled without the spaces LaTeX ignores "
                                                             "('0 . 0 1 5' as '0.015', '\\mathrm { A U C }' as '\\mathrm{AUC}')"}
@@ -485,7 +485,11 @@ def _parse(pdf, out, src, source=None):
         f"{pc.get('characters in between spans', 0) / n:.1%} the box of the layer text between their aligned neighbours "
         f"(formulas, misread words), {pc.get('characters in block spans', 0) / n:.1%} only the reader's block box; "
         f"{pc['blocks not found in full.md']} of the reader's blocks were not found in full.md")}
-    (out / "figures.json").write_text(json.dumps(figs, indent=1, ensure_ascii=False))
+    # a picture's text is not read (11-03 文浩: 「我们不读图，不做图片文本的解析」; asked whether the reader's
+    # transcriptions of figures go too: 「删」): figures.json keeps where each figure is, not what the reader read in it
+    (out / "figures.json").write_text(json.dumps([{k: f.get(k) for k in ("page", "type", "bbox", "image_path",
+                                                                           "text_layer_words_in_box")} for f in figs],
+                                                 indent=1, ensure_ascii=False))
     (out / "issues.json").write_text(json.dumps(issues, indent=1, ensure_ascii=False))
 
     blocks = MR.blocks(mdir)
@@ -498,9 +502,7 @@ def _parse(pdf, out, src, source=None):
         "scope": {"pages": prof["n_pages"], "pages_without_text_layer": prof["pages_without_text_layer"],
                   "blocks_by_type": types},
         "readers": dict(sorted({**metas, **{k: {"failed": v} for k, v in errs.items()}}.items(), key=lambda kv: kv[0] != "mineru")),
-        "figures": {"figures": len(figs), "transcriptions": sum(f["transcribed"] for f in figs),
-                    "moved_out_of_text": sum(f["in_markdown"] for f in figs),
-                    "tokens": sum(f["tokens"] for f in figs), "tokens_printed": sum(f["tokens_printed"] for f in figs),
+        "figures": {"figures": len(figs), "transcriptions_dropped": sum(f["in_markdown"] for f in figs),
                     "figures_without_text_layer": sum(f["text_layer_words_in_box"] == 0 for f in figs)},
         "checks": checks, "backends": backend_report(), "calibration": CALIBRATION, "open_issues": len(issues),
         "unchecked": unchecked,
@@ -536,10 +538,9 @@ def render(r):
              f"{s['pages']} pages" + (f"; no text layer on pages {s['pages_without_text_layer']}"
                                       if s["pages_without_text_layer"] else "; every page has a text layer") + ".",
              "Readers: " + ", ".join(f"{k}" + (" (FAILED)" if "failed" in v else "") for k, v in r["readers"].items()) + ".",
-             f"Figures: {fg.get('figures', fg['transcriptions'])} (figures.json), {fg['transcriptions']} with a transcription "
-             f"by the reader, {fg['moved_out_of_text']} moved out of full.md; "
-             f"{fg['tokens_printed']}/{fg['tokens']} of their tokens are printed in the figure's text layer, the rest is the "
-             f"reader's reading of the graphic and unverified; {fg['figures_without_text_layer']} figures have no text layer.", ""]
+             f"Figures: {fg['figures']} (figures.json: page, box, image); a picture's text is not read: "
+             f"{fg.get('transcriptions_dropped', 0)} transcriptions the reader wrote of them taken out of full.md and "
+             f"not kept.", ""]
     if r["checks"]:
         lines.append("## Measured on this document")
         for k, v in r["checks"].items():
