@@ -2,6 +2,8 @@
 supplement page with 46,000 drawings took 62 s per call, and six checks each called it), so every check reads the
 page's words here, keyed by file and page number (each check opens the PDF itself). A clip keeps the words whose
 centre lies inside the rectangle."""
+import pymupdf
+
 _cache = {}
 
 # list bullets and check marks of symbol fonts that carry no Unicode map: the layer has the font's code in the private
@@ -56,3 +58,24 @@ def page(doc, i):
     if key not in _pages:
         _pages[key] = (doc, doc[i])      # the document is kept with its page: a page outlives its opener here
     return _pages[key][1]
+
+
+def blank_glyphs(page):
+    """rectangles of three or more spaces in a row inside a math font's span: glyphs the font maps to no character,
+    which the layer gives as spaces (11-03, PTA-05 mmc3: a Word equation 'Prob(AR to Arm i) = Prob(Arm i is the
+    best)^τ / Σ ...' layered as '(   ) = (  ℎ  ) ⁄Σ =1 (  ℎ  )', and the reader copied the gaps)"""
+    out = []
+    for b in page.get_text("rawdict")["blocks"]:
+        for line in b.get("lines", []):
+            for s in line["spans"]:
+                if "math" not in s["font"].lower():
+                    continue
+                cs, i = s["chars"], 0
+                while i < len(cs):
+                    j = i
+                    while j < len(cs) and cs[j]["c"] == " ":
+                        j += 1
+                    if j - i >= 3:
+                        out.append(pymupdf.Rect(cs[i]["bbox"]) | pymupdf.Rect(cs[j - 1]["bbox"]))
+                    i = max(j, i + 1)
+    return out

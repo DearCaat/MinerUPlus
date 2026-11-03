@@ -260,8 +260,12 @@ def check(pdf_path, mdir, runs, layer_pages, work):
                             "not printed" if "not printed" in vs else "undecided")
         n[r["verdict"]] += 1; n["tokens " + r["verdict"]] += len(r["toks"])
         if r["verdict"] not in ("printed", "printed in the figure"):
+            # the run in its block's text, so a short run ('x') can be told from others like it (11-03, PTA-09/11)
+            raw = MR.unit(A[r["page"]], r["block"])[1].get("content") or ""
+            s0, e0 = r.get("raw_span") or (0, 0)
             issues.append({"kind": "text only the primary read", "page": r["page"], "block": r["block"],
                            "block_type": r["block_type"], "text": r["text"], "verdict": r["verdict"],
+                           "context": raw[max(0, s0 - 60):s0] + "[[" + raw[s0:e0] + "]]" + raw[e0:e0 + 60],
                            "crops": [x["crop"] for x in r.get("lines", [])],
                            "lines": [{"text": x["text"], "verdict": x["verdict"]} for x in r.get("lines", [])]})
     return runs, issues, dict(n)

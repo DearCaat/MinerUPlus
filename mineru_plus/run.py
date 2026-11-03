@@ -14,7 +14,7 @@
 import argparse, collections, difflib, json, re, shutil, sys, tempfile, time, threading
 import pymupdf
 from pathlib import Path
-from . import profile as PR, repair as RP, margins as MG, positions as PS
+from . import profile as PR, repair as RP, margins as MG, positions as PS, marks as MK
 from .readers import mineru as MR, oxr as OX
 from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL, omissions as OM, two_readings as TR, resolve as RS, coverage as CV, tables as TB, equations as EQ
 from . import layer as LY, sections as SC, backends, config, source as SRC
@@ -252,6 +252,31 @@ def parse(pdf, out, sources=(), same_version=False):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def _blank_glyph_issues(pdf, mdir, layer_pages):
+    doc, pages, issues = pymupdf.open(pdf), MR.pages(mdir), []
+    for pg_no in sorted(layer_pages):
+        if pg_no not in pages:
+            continue
+        pg = LY.page(doc, pg_no - 1)
+        rects = LY.blank_glyphs(pg)
+        if not rects:
+            continue
+        units = [(uid, t, p) for uid, t, p in MR.units(pages[pg_no]) if p.get("bbox")]
+        hit = set()
+        for r in rects:
+            r = r * pg.rotation_matrix
+            c = ((r.x0 + r.x1) / 2 / pg.rect.width, (r.y0 + r.y1) / 2 / pg.rect.height)
+            for uid, t, p in units:
+                x0, y0, x1, y1 = p["bbox"]
+                if x0 <= c[0] <= x1 and y0 <= c[1] <= y1 and uid not in hit:
+                    hit.add(uid)
+                    issues.append({"kind": "text layer without characters", "page": pg_no, "block": uid,
+                                   "block_type": t, "text": (p.get("content") or "")[:300],
+                                   "why": "a math font's glyphs are spaces in the layer; the reading copied the gaps: "
+                                          "retype from the page"})
+    return issues
+
+
 def _parse(pdf, out, src, source=None):
     pdf, out = Path(pdf), Path(out)
     out.mkdir(parents=True, exist_ok=True)
@@ -346,6 +371,13 @@ def _parse(pdf, out, src, source=None):
                         f"(OXR or jev settled the layer's reading); {tcount.get('tables equal the layer (after fixes)', 0)} "
                         f"tables equal the layer, {tcount.get('tables with open cells', 0)} with open cells"}
     # text only the primary read: jev on the layer-placed words (check/unread.py)
+    # check-box marks drawn as images (marks.py): the 'x' a reader kept for some of them is that mark, written whole in
+    # the closing section, not text only the primary read
+    marked = MK.find(pdf)
+    mark_pages = {f["page"] for f in marked}
+    unread = [r for r in unread if not (r["page"] in mark_pages and r["text"].strip() in ("x", "X", "×", "✘", "✗"))]
+    # formulas whose glyphs the layer has as spaces: the reader copied the gaps (layer.blank_glyphs)
+    issues += _blank_glyph_issues(pdf, mdir, layer_pages)
     runs_u, uissues, ucount = UR.check(pdf, mdir, unread, layer_pages, out / "checks" / "unread")
     issues += uissues
     (out / "checks" / "unread.json").write_text(json.dumps(runs_u, ensure_ascii=False, indent=1))
@@ -421,6 +453,9 @@ def _parse(pdf, out, src, source=None):
     if "dropped" in checks:               # block findings were judged one by one there; keep the rest
         ci = [i for i in ci if i.get("block") is None]
     issues += ci
+    md = MK.add(md, marked)
+    checks["marks"] = {"marked boxes": len(marked), "summary": f"{len(marked)} check boxes holding a mark drawn as an "
+                       f"image, written to the closing section with their column and row"}
     md, mst, mi = MG.add(pdf, mdir, md, set(prof["pages_without_text_layer"]))
     checks["margins"] = {**mst, "summary": f"{mst.get('written', 0)} page headers, footers, page numbers and side notes the "
                           f"reader left out of its markdown written to the closing section; {mst.get('equal to the text layer', 0)} "

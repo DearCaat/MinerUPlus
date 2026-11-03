@@ -106,7 +106,7 @@ def add(pdf, mdir, md, no_layer_pages=()):
             box = pymupdf.Rect(b["bbox"][0] * page.rect.width, b["bbox"][1] * page.rect.height,
                                b["bbox"][2] * page.rect.width, b["bbox"][3] * page.rect.height) * page.derotation_matrix
             if pg not in drawn:
-                drawn[pg] = page.get_drawings()
+                drawn[pg] = page.get_cdrawings()
             if _outlined(page, box, drawn[pg]):
                 stats["read from an image (glyphs drawn as curves beside the layer text in its box)"] += 1
                 issues.append({"kind": "margin text read from an image, not checked", "page": pg, "block": bi,

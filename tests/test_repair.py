@@ -290,3 +290,40 @@ def test_space_inside_a_word_the_layer_does_not_decide_is_reported(tmp_path):
     assert RS._layer_spacing_says(pg, {"primary": "Galv\u00e1 n", "oxr": "Galv\u00e1n"}) is None   # reported
     assert RS._splits_word({"primary": "Ferná ndez", "oxr": "Fernández"})
     assert not RS._splits_word({"primary": "patients UCMC", "oxr": "patientsUCMC2"})
+
+
+def test_check_box_marks_drawn_as_images_are_written_with_column_and_row(tmp_path):
+    import pymupdf
+    from mineru_plus import marks as MK
+    doc = pymupdf.open()
+    pg = doc.new_page()
+    pg.insert_text((24, 100), "n/a", fontsize=8)
+    pg.insert_text((44, 100), "Confirmed", fontsize=8)
+    pix = pymupdf.Pixmap(pymupdf.csRGB, pymupdf.IRect(0, 0, 4, 4), False)
+    pix.clear_with(0)
+    for k, item in enumerate(["The exact sample size", "A description of all covariates tested"]):
+        y = 110 + 20 * k
+        for x in (27, 43):
+            pg.draw_rect(pymupdf.Rect(x, y, x + 10, y + 10), color=(0.3, 0.3, 0.3), fill=(1, 1, 1))
+        mark_x = 46 if k == 0 else 30                        # Confirmed, then n/a
+        pg.insert_image(pymupdf.Rect(mark_x, y + 3, mark_x + 4, y + 7), pixmap=pix)
+        pg.insert_text((60, y + 8), item, fontsize=8)
+    pdf = tmp_path / "f.pdf"
+    doc.save(pdf)
+    md = MK.add("Body.\n", MK.find(str(pdf)))
+    assert "- p1, Confirmed: The exact sample size" in md and "- p1, n/a: A description of all covariates tested" in md
+
+
+def test_math_glyphs_the_layer_has_as_spaces_are_found():
+    from mineru_plus import layer as LY
+    ch = lambda c, x: {"c": c, "bbox": (x, 10, x + 4, 20)}
+    span = lambda font, t: {"font": font, "chars": [ch(c, 10 + 4 * i) for i, c in enumerate(t)]}
+
+    class Page:
+        def __init__(self, spans):
+            self.spans = spans
+
+        def get_text(self, kind):
+            return {"blocks": [{"lines": [{"spans": self.spans}]}]}
+    assert len(LY.blank_glyphs(Page([span("Cambria Math", "    (     ) = ")]))) == 2
+    assert LY.blank_glyphs(Page([span("Times New Roman", "a    b")])) == []    # spaces outside a math font
