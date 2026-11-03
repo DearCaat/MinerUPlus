@@ -82,6 +82,16 @@ def _new_span(span_text, s):
     return "".join(out) + span_text[pos:]
 
 
+def _at_raw_span(text, s):
+    """the recorded raw span, where the block still prints the primary's characters there: context does not tell
+    two places apart in an author list (11-02, PTA-08: 'Y. H uang' twice in one reference block)"""
+    r = s.get("raw_span")
+    if not r or r[1] > len(text):
+        return None
+    flat = lambda x: re.sub(r"\s", "", x)
+    return tuple(r) if flat(text[r[0]:r[1]]) == flat(s["primary"]) else None
+
+
 def _locate_split(text, s):
     """the split word alone, where it occurs once in the block: the passage around it may hold markup the tokens do
     not (11-02, rnasplice: 'welldocumented heterogeneity<sup>48,49</sup>' against the tokens '... heterogeneity 48,49')"""
@@ -157,7 +167,8 @@ def apply(md, pages, subs):
         if done:
             md = md.replace(block, nb, 1)
             cur[key] = nb
-    for s in subs:
+    # right to left within a block: a place found by its recorded raw span keeps its offsets
+    for s in sorted(subs, key=lambda s: -(s.get("raw_span") or [0])[0]):
         if s["plan"].startswith("keep") or s.get("written"):
             continue
         if s["plan"].startswith("open"):
@@ -172,7 +183,8 @@ def apply(md, pages, subs):
         if block is None or md.count(block) != 1:
             issues.append({"id": s["id"], "page": s["page"], "why": "block text not found once in full.md",
                            "primary": s["primary"], "oxr": s["oxr"], "context": s["context"]}); continue
-        span = _locate(block, s) or (_locate_split(block, s) if s["route"] == "line-break hyphen" else None)
+        span = _locate(block, s) or (_locate_split(block, s) if s["route"] == "line-break hyphen" else None) or \
+            _at_raw_span(block, s)
         if not span:
             issues.append({"id": s["id"], "page": s["page"], "why": "passage not found once in its block",
                            "primary": s["primary"], "oxr": s["oxr"], "context": s["context"]}); continue

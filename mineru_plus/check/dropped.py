@@ -435,10 +435,24 @@ def _edit_plain(raw, f):
         return raw[:at] + text + raw[at:], raw[max(0, at - 12):at + 12], raw[max(0, at - 12):at] + text + raw[at:at + 12]
     s, e = f["raw_span"]
     old = raw[s:e]
-    if len(ins) != len(f["replaces"]) or "$" in old or "<" in old or "\\" in old or _in_math(raw, s):
+    if len(ins) != len(f["replaces"]) or "$" in old or "<" in old or "\\" in old or \
+            _in_math(raw, s) and (f.get("retype_ok") or not _formula_letter(raw, s, e, ins)):
         return None                                # not character for character, or inside a formula: by hand
     ins = f.get("insert_src", ins)
     return raw[:s] + ins + raw[e:], raw[max(0, s - 12):e + 12], raw[max(0, s - 12):s] + ins + raw[e:e + 12]
+
+
+def _formula_letter(raw, s, e, ins):
+    """one letter or digit of a formula's LaTeX for another, not part of a command name: written in place where the
+    formula is not retyped (11-02, PTA-10: 'ln(OR)' printed, '\\frac { I n ( O R ) }' read, a fraction); where it is
+    retyped, a letter written in place first would leave the formula's other differences unwritten (11-03, PTA-10:
+    '\\mathsf{rs}' written, the stars before 'p<0.01' not)"""
+    if e - s != 1 or len(ins) != 1 or not (raw[s].isalnum() and ins.isalnum()):
+        return False
+    j = s
+    while j > 0 and raw[j - 1].isalpha():
+        j -= 1
+    return not (j > 0 and raw[j - 1] == "\\")
 
 
 def _doubled(layer, prim):
@@ -506,7 +520,14 @@ def apply(md, pages, found, second=None):
                 n["in a formula already retyped"] += 1
                 continue
             changed = f["raw_span"] is not None
-            r = None if bad or not f["placeable"] or (changed and not second_has(pg, f["lay"])) else edit(new, f)
+            # characters drawn alike ('l' and 'I'): both readers read the image and can share the misreading, so the
+            # second reading is no check there and the layer with jev decides, written in place only (11-02, PTA-10:
+            # 'ln(OR)' printed, both readers 'In(OR)'); never by retyping the formula, which for a look-alike only
+            # swaps the LaTeX for the layer's characters ('\cdot' for '⋅', 11-03 PTA-10 '$p = 2 \cdot (1 - ...)$')
+            unchecked = changed and not second_has(pg, f["lay"])
+            alike = changed and TR.skeleton(f["insert"]) == TR.skeleton(f["replaces"])
+            r = None if bad or not f["placeable"] or unchecked and not alike else \
+                _edit_plain(new, f) if unchecked else edit(new, f)
             if r is None:
                 n["printed, not placed"] += 1
                 issues.append({"kind": "text layer not in the parse", "why": "printed (jev); not placed, edit by hand",

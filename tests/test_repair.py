@@ -165,3 +165,14 @@ def test_margin_text_already_in_the_body_in_other_markup():
     from mineru_plus import margins as MG
     body = "A full list of affiliations appears at the end of the paper. e-mail: [x@y.org](mailto:x@y.org)"
     assert MG._alnum("A full list of affiliations appears at the end of the paper. e-mail: x@y.org") in MG._alnum(body)
+
+
+def test_formula_letter_written_in_place_unless_the_formula_is_retyped():
+    from mineru_plus.check import dropped as DR
+    raw = r'odds $\frac { I n ( O R ) } { 2 }$ and'
+    s = raw.index('I')
+    f = {'insert': 'l', 'replaces': 'I', 'raw_span': [s, s + 1]}
+    assert DR._edit_plain(raw, f)[0] == raw.replace('I n', 'l n')
+    assert DR._edit_plain(raw, dict(f, retype_ok=True)) is None             # the retype writes it with the rest
+    c = raw.index('frac') + 1
+    assert DR._edit_plain(raw, {'insert': 'x', 'replaces': 'r', 'raw_span': [c, c + 1]}) is None   # a command name

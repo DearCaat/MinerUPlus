@@ -170,7 +170,8 @@ def _layer_spacing_says(pg, s):
     # OXR cutting a word into a letter and the rest ('f low' for a layer's 'ﬂow') is OXR's error, not the primary's
     if len(b) >= len(a) and any(len(t) == 1 for t in b):
         return None
-    return "oxr" if all(t in ws for t in b) and not all(t in ws for t in a) else None
+    # a single letter of the primary is a piece, not a word ('F. H e' for 'F. He')
+    return "oxr" if all(t in ws for t in b) and not all(t in ws and len(t) > 1 for t in a) else None
 
 
 def _latin(c):

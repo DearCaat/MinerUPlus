@@ -19,11 +19,6 @@ NAMES = {"header": "header", "footer": "footer", "page_number": "page number", "
 WS = re.compile(r"\s+")
 
 
-def _in(md_flat, text):
-    t = WS.sub(" ", text).strip()
-    return bool(t) and t in md_flat
-
-
 def _same_words(lay, text):
     """the same words, the lines in another order: the layer of a side note set vertically runs its lines bottom to
     top (10-29, medRxiv: the copyright notice on every page, 24 pages reported as differing, word for word equal)"""
@@ -39,8 +34,23 @@ def _alnum(text):
 def add(pdf, mdir, md, no_layer_pages=()):
     pdf = pymupdf.open(pdf) if not isinstance(pdf, pymupdf.Document) else pdf
     pages = MR.pages(mdir)
-    flat = WS.sub(" ", md)
     md_alnum = _alnum(md)
+    paras = collections.Counter(_alnum(p) for p in re.split(r"\n\s*\n", md))
+    used = collections.Counter()
+
+    def already(text):
+        """the reader wrote this block into the running text: a paragraph of its own, or (four words or more) inside
+        one in other markup (11-02, PTA-09: the affiliation footnote of page 1 with a link). Each occurrence stands for
+        one block: a running head printed on every page is not 'in the text' because a citation names the journal, and
+        a logo read 'll' is no word of the text (11-02, PTA-05: the CellPress head of the odd pages was left out)"""
+        k = _alnum(text)
+        if k and paras[k] > used["p", k]:
+            used["p", k] += 1
+            return True
+        if k and len(text.split()) >= 4 and md_alnum.count(k) > used["s", k]:
+            used["s", k] += 1
+            return True
+        return False
     lines, issues, stats = [], [], collections.Counter()
     for pg in sorted(pages):
         for bi, b in pages[pg]:
@@ -50,10 +60,7 @@ def add(pdf, mdir, md, no_layer_pages=()):
             if not text:
                 continue
             stats[b["type"]] += 1
-            # the running text may hold the block in other markup (11-02, PTA-09: the affiliation footnote of page 1 in
-            # the body with a link, written again as a footer); a short margin text (a page number, a journal name)
-            # is compared as it stands
-            if _in(flat, text) or len(text.split()) >= 4 and _alnum(text) in md_alnum:
+            if already(text):
                 stats["already in text"] += 1
                 continue
             stats["written"] += 1
