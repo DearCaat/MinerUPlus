@@ -50,7 +50,14 @@ def add(pdf, mdir, md, no_layer_pages=()):
     pages = MR.pages(mdir)
     md_alnum = _alnum(md)
     paras = collections.Counter(_alnum(p) for p in re.split(r"\n\s*\n", md))
+    # the running text's own blocks hold their occurrences: a margin block is 'in the text' only by the ones left over
+    # (11-03, PTA-10: the heading 'Article' of page 2 counted for the running head 'Article' of page 1, which was left
+    # out)
+    body = [_alnum(b.get("content") or "") for pg in pages for _, b in pages[pg] if b["type"] not in MARGIN]
     used = collections.Counter()
+    for p in body:
+        if p:
+            used["p", p] += 1
 
     def already(text):
         """the reader wrote this block into the running text: a paragraph of its own, or (four words or more) inside
@@ -61,7 +68,7 @@ def add(pdf, mdir, md, no_layer_pages=()):
         if k and paras[k] > used["p", k]:
             used["p", k] += 1
             return True
-        if k and len(text.split()) >= 4 and md_alnum.count(k) > used["s", k]:
+        if k and len(text.split()) >= 4 and md_alnum.count(k) > used["s", k] + sum(p.count(k) for p in body):
             used["s", k] += 1
             return True
         return False

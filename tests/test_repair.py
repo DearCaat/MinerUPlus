@@ -229,3 +229,44 @@ def test_logo_with_glyphs_drawn_as_curves_is_not_checked_by_its_layer_text():
     plain.insert_text((100, 60), "Article", fontsize=16)
     plain.draw_line((65, 64), (200, 64))                                   # a rule under a running head
     assert not MG._outlined(plain, box, plain.get_drawings())
+
+
+def test_words_broken_by_spaces_are_joined_where_layer_and_oxr_have_the_word(tmp_path):
+    import json
+    import pymupdf
+    from mineru_plus.check import respace as RSP
+    doc = pymupdf.open()
+    pg = doc.new_page()
+    pg.insert_text((72, 72), "Adverse events of grade 1-2 occurring in patients are listed log in to")
+    pdf = tmp_path / "t.pdf"
+    doc.save(pdf)
+    text = "Adverse events of g rade 1-2 occu rri ng i n patients are l isted log in to"
+    mdir = tmp_path / "mineru"
+    mdir.mkdir()
+    (mdir / "structured_content.json").write_text(json.dumps({"pages": [{"page_idx": 0, "blocks": [
+        {"type": "table_footnote", "content": text, "bbox": [0, 0, 1, 1]}]}]}))
+    oxr = {1: [{"type": "Table", "content": "<td>grade 1-2 occurring in patients are listed log in to</td>"}]}
+    md, edits, joined, _ = RSP.apply(str(pdf), mdir, "# T\n\n" + text + "\n", {1}, oxr)
+    assert "of grade 1-2 occurring in patients are listed log in to" in md       # 'in to' printed apart stays
+    assert RSP.apply(str(pdf), mdir, "# T\n\n" + text + "\n", {1}, None)[1] == []  # no second reading, no join
+    glued = {1: [{"type": "Text", "content": "g rade 1-2 occu rri ng i n patients are l isted"}]}
+    assert RSP.apply(str(pdf), mdir, "# T\n\n" + text + "\n", {1}, glued)[1] == []
+
+
+def test_running_head_equal_to_a_heading_elsewhere_is_kept(tmp_path):
+    import json
+    import pymupdf
+    from mineru_plus import margins as MG
+    doc = pymupdf.open()
+    for _ in range(2):
+        doc.new_page().insert_text((450, 40), "Article")
+    pdf = tmp_path / "m.pdf"
+    doc.save(pdf)
+    mdir = tmp_path / "mineru"
+    mdir.mkdir()
+    head = {"type": "header", "content": "Article", "bbox": [0.7, 0.03, 0.9, 0.07]}
+    (mdir / "structured_content.json").write_text(json.dumps({"pages": [
+        {"page_idx": 0, "blocks": [head]},
+        {"page_idx": 1, "blocks": [{"type": "paragraph_title", "content": "Article", "bbox": [0.1, 0.2, 0.3, 0.25]}]}]}))
+    md, _, _ = MG.add(str(pdf), mdir, "## Article\n\nBody text.\n")
+    assert "- p1 header: Article" in md

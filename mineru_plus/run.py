@@ -18,7 +18,7 @@ from . import profile as PR, repair as RP, margins as MG, positions as PS
 from .readers import mineru as MR, oxr as OX
 from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL, omissions as OM, two_readings as TR, resolve as RS, coverage as CV, tables as TB, equations as EQ
 from . import layer as LY, sections as SC, backends, config, source as SRC
-from .check import linebreak as LB
+from .check import linebreak as LB, respace as RSP
 
 VERSION = "0.5.6"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
@@ -299,6 +299,13 @@ def _parse(pdf, out, src, source=None):
     subs = [s for s in subs if not any(OM.overlaps(o, s) for o in om)] + om
     subs = RS.settle(pdf, subs, out / "checks", source, LB.reference_boxes(mdir))
     md, edits, open_items = RP.apply(md0, MR.pages(mdir), subs)
+    # words the primary broke with spaces, joined where the page's layer has the word and never its pieces in a row
+    # (check/respace.py); their pieces are no longer text only the primary read
+    md, sedits, joined, scount = RSP.apply(pdf, mdir, md, layer_pages, oxp)
+    edits += sedits
+    unread = [r for r in unread if not RSP.covers(r, joined)]
+    checks["respace"] = {**scount, "summary": f"{scount.get('words joined', 0)} words the primary broke with spaces "
+                                               f"joined where the text layer and OXR have the word"}
     # text-layer content the primary dropped or changed, judged by jev and written back (check/dropped.py)
     found = DR.judge(DR.find(pdf, mdir, out / "checks" / "dropped", md), out / "checks" / "dropped")
     md, dedits, dissues, dcount = DR.apply(md, MR.pages(mdir), found,
