@@ -414,7 +414,7 @@ def test_margin_link_printed_as_its_address_once():
     assert MG.LINK.sub(r"\1", f"[{u}]({u})") == u
 
 
-def test_logo_read_from_a_picture_is_left_out_of_the_margins(tmp_path):
+def test_logo_read_from_a_picture_is_left_out_of_the_margins(tmp_path, monkeypatch):
     import json
     import pymupdf
     from mineru_plus import margins as MG
@@ -433,7 +433,17 @@ def test_logo_read_from_a_picture_is_left_out_of_the_margins(tmp_path):
         {"type": "header", "content": "Q", "bbox": nb(250, 28, 270, 46)},                 # a logo: no layer text
         {"type": "header", "content": "Running head", "bbox": nb(400, 46, 470, 58)},      # box set off its text
         {"type": "text", "content": "Body.", "bbox": nb(72, 100, 300, 120)}]}]}))
-    md, stats, issues = MG.add(str(pdf), mdir, "# T\n\nBody.\n")
-    # 11-03 文浩: a logo is a picture, its text is not read
+    # 11-03 文浩: a logo is a picture, its text is not read; jev tells which blocks are logos
+    asked = []
+    def fake(qs, work, tag):
+        asked.extend(q["id"] for q in qs)         # in page order: the 'Q' box first; jev is shown no reading
+        return {q["id"]: "logo" if k == 0 else "printed" for k, q in enumerate(qs)}
+    monkeypatch.setattr(MG.jev, "ask", fake)
+    md, stats, issues = MG.add(str(pdf), mdir, "# T\n\nBody.\n", work=tmp_path / "m")
     assert "header: Article" in md and "header: Running head" in md and ": Q" not in md
-    assert stats["logos and badges drawn as pictures, left out"] == 1 and issues == []
+    assert stats["logos and badges (jev), left out"] == 1
+    assert len(asked) == 2                     # 'Q' and the set-off 'Running head'; the layer confirms 'Article'
+    assert [i["kind"] for i in issues] == ["margin text differs from the text layer"]   # the set-off box
+    monkeypatch.setattr(MG.jev, "ask", lambda qs, work, tag: {q["id"]: "undecided" for q in qs})
+    md, stats, issues = MG.add(str(pdf), mdir, "# T\n\nBody.\n", work=tmp_path / "m2")
+    assert ": Q" in md and sorted(i["kind"] for i in issues) == ["margin block: a picture or printed text, not settled"] * 2

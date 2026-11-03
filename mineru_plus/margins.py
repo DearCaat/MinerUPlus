@@ -7,14 +7,19 @@ Each is checked against the text layer of its box where the page has one (born-d
 document's own text). A margin block whose characters differ from the layer is an open issue with its page; pages
 without a text layer are written as read and counted.
 
-On a page with a text layer, a block whose characters the layer does not hold, in its box or around it, is a logo or
-badge drawn as a picture, and is left out: not written, not reported, counted (11-03 文浩: "logo是logo为什么算印的字？
-本质不和图片一样？我们不读图，不做图片文本的解析"; the readings were 'Q', 'll', 'CelPress', 'heck k for')."""
-import collections, re
+A logo or badge is a picture, and a picture's text is not read (11-03 文浩: "logo是logo为什么算印的字？本质不和图片一样？
+我们不读图，不做图片文本的解析"; the readings were 'Q', 'll', 'CelPress', 'heck k for'). Whether a block is one is
+jev's question, not a rule of the layer (文浩: "让jev看下就知道是不是logo了"): a text drawn as outlines has no layer and
+is printed text, the CellPress logo holds a layer 'll'. The blocks the layer does not confirm (other characters in
+the box, or glyphs drawn as curves beside its words) are shown to jev, one crop per text and place; a logo is left
+out (not written, not reported, counted), printed text is written and checked as before, an undecided one is written
+and reported."""
+import base64, collections, hashlib, re
+from pathlib import Path
 import pymupdf
 from .readers import mineru as MR
 from .check.two_readings import toks, printed_map
-from .check import dropped as DR
+from .check import dropped as DR, jev, gemini
 from .check.tables import layer_tokens
 from . import layer as LY
 
@@ -50,15 +55,33 @@ def _outlined(pg, r, drawings):
     return False
 
 
-def _near(pg, box, chars):
-    """the layer prints these characters in a run of its words in and around the box (its height on every side)"""
-    k = "".join(c.lower() for c in chars if c.isalnum())
-    around = box + (-box.height, -box.height, box.height, box.height)
-    lay = "".join(c.lower() for w in LY.words(pg, around) for ch in w[4] for c in DR._norm_char(ch) if c.isalnum())
-    return bool(k) and k in lay
+# the region alone, and no quoted reading: with the margin around it and the reader's 'CO' quoted, jev took the open
+# access padlock beside the running head 'Article' for text (11-03, PTA-07; P 0.5 either way); cut to the box it reads
+# the padlock, 'Cell', 'Q' and the CellPress logo as pictures and 'Article' as text (P >= 0.7 in both orders)
+INSTR = "The image is a region of a printed page. Decide what it shows."
+PICTURE = "A picture: a logo, an icon, a badge, an emblem or a drawing (letters may be part of the design)"
+TEXT = "Plain text: letters or digits set in an ordinary font"
 
 
-def add(pdf, mdir, md, no_layer_pages=()):
+def _crop(page, box, path):
+    # upright through the page's rotation (11-03, PTA-05 pages 6-8: the unrotated box cut a table heading, read as text)
+    gemini._image(page, (box + (-4, -4, 4, 4)) & (page.rect * page.derotation_matrix), 200).save(str(path))
+    return "data:image/png;base64," + base64.b64encode(Path(path).read_bytes()).decode()
+
+
+def _pictures(asked, work):
+    """{(text, place): 'logo' | 'printed' | 'undecided' | ...} from jev, one crop per text and place"""
+    qs = []
+    for (text, place), (page, box) in asked.items():
+        qid = "m" + hashlib.md5(f"{text}|{place}".encode()).hexdigest()[:10]
+        img = _crop(page, box, Path(work) / f"{qid}.png")
+        qs.append({"id": qid, "key": (text, place), "state": "A region of a page.", "instructions": INSTR,
+                   "images": [img], "options": {"logo": PICTURE, "printed": TEXT}})
+    v = jev.ask([{k: x for k, x in q.items() if k != "key"} for q in qs], work, "margins") if qs else {}
+    return {q["key"]: v.get(q["id"], "not judged") for q in qs}
+
+
+def add(pdf, mdir, md, no_layer_pages=(), work=None):
     pdf = pymupdf.open(pdf) if not isinstance(pdf, pymupdf.Document) else pdf
     pages = MR.pages(mdir)
     md_alnum = _alnum(md)
@@ -85,7 +108,7 @@ def add(pdf, mdir, md, no_layer_pages=()):
             used["s", k] += 1
             return True
         return False
-    lines, issues, stats, drawn = [], [], collections.Counter(), {}
+    lines, issues, stats, drawn, ask, asked = [], [], collections.Counter(), {}, [], {}
     for pg in sorted(pages):
         for bi, b in pages[pg]:
             if b["type"] not in MARGIN:
@@ -97,12 +120,14 @@ def add(pdf, mdir, md, no_layer_pages=()):
             if already(text):
                 stats["already in text"] += 1
                 continue
-            line = f"- p{pg} {NAMES[b['type']]}: {WS.sub(' ', text)}"
+            item = {"line": f"- p{pg} {NAMES[b['type']]}: {WS.sub(' ', text)}", "page": pg, "block": bi,
+                    "type": b["type"], "text": text}
             if pg in no_layer_pages or not b.get("bbox"):
-                stats["written"] += 1; lines.append(line)
                 stats["unverified (no text layer)"] += 1
+                ask.append((item, None))
                 continue
             lay = layer_tokens(pdf, pg, b["bbox"])
+            item["layer"] = " ".join(lay)[:500]
             # printed characters on both sides: markdown escapes and tags of the block dropped, spacing ignored
             # (letter-spaced running heads split words differently on the layer); a link printed as its address
             # once ('[https://doi.org/…](https://doi.org/…)', 11-03 PTA-05 and PTA-10: taken for a badge)
@@ -114,23 +139,42 @@ def add(pdf, mdir, md, no_layer_pages=()):
                                b["bbox"][2] * page.rect.width, b["bbox"][3] * page.rect.height) * page.derotation_matrix
             if pg not in drawn:
                 drawn[pg] = page.get_cdrawings()
-            # little or nothing on the layer in the box (10-29: the CellPress logo holds only 'll'), or glyphs drawn
-            # as curves beside the layer words there (11-03: 'Ce' and 'Press' around a layer 'll'): a picture,
-            # unless the layer prints the block's characters just around the box (a box the reader set off its text)
-            if len(lc) < 0.5 * len(bc) and not _near(page, box, bc) or _outlined(page, box, drawn[pg]):
-                stats["logos and badges drawn as pictures, left out"] += 1
-                continue
-            stats["written"] += 1; lines.append(line)
-            if lc == bc or _same_words(lay, shown) or len(lc) < 0.5 * len(bc):
-                stats["equal to the text layer"] += 1
-            else:
-                stats["differs from the text layer"] += 1
-                issues.append({"kind": "margin text differs from the text layer", "page": pg, "block": bi,
-                               "type": b["type"], "text": text, "layer": " ".join(lay)[:500]})
+            item["equal"] = lc == bc or _same_words(lay, shown)
+            # the layer does not confirm it: other characters in the box (10-29: the CellPress logo holds only 'll'),
+            # or glyphs drawn as curves beside the layer words there (11-03: 'Ce' and 'Press' around a layer 'll')
+            if not item["equal"] or _outlined(page, box, drawn[pg]):
+                place = (b["type"], round(box.x0 / 10), round(box.y0 / 10))
+                item["key"] = (text, place)
+                asked.setdefault(item["key"], (page, box))
+            ask.append((item, item.get("key")))
+    seen = {}
+    if asked and work is not None:
+        Path(work).mkdir(parents=True, exist_ok=True)
+        seen = _pictures(asked, work)
+    for item, key in ask:
+        v = seen.get(key) if key else None
+        if v == "logo":
+            stats["logos and badges (jev), left out"] += 1
+            continue
+        stats["written"] += 1
+        lines.append(item["line"])
+        if "layer" not in item:
+            continue
+        if key and v != "printed":
+            stats["picture or printed text not settled (jev)"] += 1
+            issues.append({"kind": "margin block: a picture or printed text, not settled", "page": item["page"],
+                           "block": item["block"], "type": item["type"], "text": item["text"],
+                           "layer": item["layer"], "why": f"jev: {v or 'not asked'}"})
+        elif item["equal"]:
+            stats["equal to the text layer"] += 1
+        else:
+            stats["differs from the text layer"] += 1
+            issues.append({"kind": "margin text differs from the text layer", "page": item["page"],
+                           "block": item["block"], "type": item["type"], "text": item["text"], "layer": item["layer"]})
     # the same margin text differing the same way on many pages is one finding (a running head or logo)
     grouped = {}
     for i in issues:
-        g = grouped.setdefault((i["type"], i["text"], i["layer"]), {**i, "pages": []})
+        g = grouped.setdefault((i["kind"], i["type"], i["text"], i["layer"]), {**i, "pages": []})
         g["pages"].append(i["page"])
     issues = [{k: v for k, v in g.items() if k not in ("page", "block")} for g in grouped.values()]
     if lines:

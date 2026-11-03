@@ -456,13 +456,13 @@ def _parse(pdf, out, src, source=None):
     md = MK.add(md, marked)
     checks["marks"] = {"marked boxes": len(marked), "summary": f"{len(marked)} check boxes holding a mark drawn as an "
                        f"image, written to the closing section with their column and row"}
-    md, mst, mi = MG.add(pdf, mdir, md, set(prof["pages_without_text_layer"]))
+    md, mst, mi = MG.add(pdf, mdir, md, set(prof["pages_without_text_layer"]), out / "checks" / "margins")
     checks["margins"] = {**mst, "summary": f"{mst.get('written', 0)} page headers, footers, page numbers and side notes the "
                           f"reader left out of its markdown written to the closing section; {mst.get('equal to the text layer', 0)} "
                           f"equal the text layer, {mst.get('differs from the text layer', 0)} differ (open issues), "
                           f"{mst.get('unverified (no text layer)', 0)} on pages without a text layer; "
-                          f"{mst.get('logos and badges drawn as pictures, left out', 0)} logos and badges left out (a "
-                          f"picture's text is not read)"}
+                          f"{mst.get('logos and badges (jev), left out', 0)} logos and badges left out (jev; a picture's "
+                          f"text is not read), {mst.get('picture or printed text not settled (jev)', 0)} not settled (open issues)"}
     issues += mi
     if "characters" in checks:            # disagreements a later step settled (dropped, retyped formulas, tables)
         issues, later = _settled_later(md, subs, issues)
