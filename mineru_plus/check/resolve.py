@@ -170,7 +170,7 @@ def _page_words(pg):
         merged = []
         for w in LY.words(pg):
             p = merged[-1] if merged else None
-            if p and abs(p[3] - w[3]) < 0.2 * (w[3] - w[1]) and 0 <= w[0] - p[2] < 0.1 * (w[3] - w[1]):
+            if p and abs(p[3] - w[3]) < 0.2 * (w[3] - w[1]) and abs(w[0] - p[2]) < 0.1 * (w[3] - w[1]):
                 merged[-1] = (p[0], p[1], w[2], w[3], p[4] + w[4], p[5], p[6])
             else:
                 merged.append(tuple(w[:7]))

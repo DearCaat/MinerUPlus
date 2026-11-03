@@ -12,12 +12,24 @@ not "which reading does the page print".
   agreed_splits(...)       split words both readers spell alike that a source document, or the document's own
                            mid-line usage, spells the other way
 """
-import re
+import re, unicodedata
 from .. import layer as LY
 
 HY = ("-", "­", "‐", "‑")
 EDGE = re.compile(r"^[^\w]+|[^\w]+$")
 DASH = re.compile("[-\u00ad\u2010\u2011\u2012\u2013\u2014]")
+
+
+def _fold(s):
+    """letters without accents, so a layer's spacing accent ('Gonza´') and a reading's composed one ('Gonzá') match;
+    with the index in s of each character kept"""
+    out, at = [], []
+    for i, ch in enumerate(s):
+        for c in unicodedata.normalize("NFKD", ch):
+            if not unicodedata.combining(c) and unicodedata.category(c) != "Sk" and not c.isspace():
+                out.append(c)
+                at.append(i)
+    return "".join(out), at
 
 
 def breaks(page, before=False):
@@ -29,9 +41,13 @@ def breaks(page, before=False):
     keys = sorted(lines)
     out, prev = [], []
     for k, nk in zip(keys, keys[1:]):
-        last, first = lines[k][-1][4], lines[nk][0][4]
-        ctx = (prev + [w[4] for w in lines[k][:-1]])[-2:]
-        prev = [w[4] for w in lines[k]]
+        ln, first = lines[k], lines[nk][0][4]
+        last, rest = ln[-1][4], ln[:-1]
+        # a hyphen the layer sets apart, against the word ('Gonza´' '\xad' with no gap, 11-03 PTA-05)
+        if len(ln) > 1 and last in HY and ln[-1][0] - ln[-2][2] < 0.1 * (ln[-1][3] - ln[-1][1]):
+            last, rest = ln[-2][4] + last, ln[:-2]
+        ctx = (prev + [w[4] for w in rest])[-2:]
+        prev = [w[4] for w in ln]
         if last.endswith(HY) and len(last) > 1:
             bk = (EDGE.sub("", last[:-1]), EDGE.sub("", first))
             out.append(bk + (ctx,) if before else bk)
@@ -63,8 +79,14 @@ def is_linebreak(item, bk):
         segl, segr = DASH.split(left)[-1], DASH.split(right)[0]
         word = re.match(r"[^\W\d_]*", segr).group()      # 'info@multi-|plexdx.com': the letters after the break
         for l, r in ((left, right), (segl, right), (left, segr), (segl, segr), (left, word), (segl, word)):
-            if l and r and (l + "-" + r) in h:
-                return l, r, left
+            if not (l and r):
+                continue
+            (fh, at), fw = _fold(h), _fold(l + "-" + r)[0]
+            k = fh.find(fw)
+            if k >= 0:
+                # the reading's own letters, which the repair finds in the block ('Gonzá' for the layer's 'Gonza´')
+                lh, rh = h[at[k]:at[k + len(fw) - 1] + 1].split("-", 1)
+                return lh, rh, left
     return None
 
 

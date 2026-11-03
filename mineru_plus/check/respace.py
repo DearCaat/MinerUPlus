@@ -14,15 +14,55 @@ PTA-11: 'theirutilityforROR' a layer word, 'their utility for ROR' joined); with
 
 A space inside a word is an error (文浩 11-03, 「算错」: it breaks search and quotation checks). Where the layer
 points to one and OXR neither confirms the word nor reads the pieces apart (no OXR, or OXR left the passage out),
-it is reported."""
+it is reported.
+
+A space before a comma, full stop, semicolon or colon is dropped where the layer prints the mark against the word
+and OXR reads it so: a layer can set a spacing accent and then a space glyph the page does not print ('Pare´' ','
+0.1 pt apart, 11-03 PTA-05 and PTA-10 references, read 'Paré , L.'). The compare reads no spaces around marks, so
+only the layer and OXR see it; with no OXR nothing is dropped and nothing reported, a space before a mark being no
+space inside a word."""
 import collections, re, unicodedata
 import pymupdf
 from ..readers import mineru as MR
 from .. import layer as LY
 from . import dropped as DR
 from .two_readings import PRIMARY_PROSE
+from .resolve import _base
 
 LETTERS = re.compile(r"[^\W\d_]+")
+MARK = ",.;:"
+# the mark ends there: before a number it may be a reading's superscript run into it ('response ,39–44'), and
+# dropping the space would make one token of the two
+BEFORE_MARK = re.compile(r"([^\W\d_]+) ([,.;:])(?=[\s,.;:)\]]|$)")
+
+
+def _marks(pg):
+    """(against, apart): a word's last letters (accents aside) with the mark after it, where the layer prints the mark
+    against the word (a gap under a tenth of the height either way: 'A˚' '.,' overlap by 0.02 pt) and where it
+    leaves a gap"""
+    against, apart = set(), set()
+    ws = LY.words(pg)
+    for w in ws:
+        against |= {m.group(1) + m.group(2) for m in re.finditer(r"([^\W\d_]+)([,.;:])", _base(w[4]))}
+    for p, w in zip(ws, ws[1:]):
+        h = w[3] - w[1]
+        if not w[4] or w[4][0] not in MARK or abs(p[3] - w[3]) >= 0.2 * h:
+            continue
+        m = re.search(r"[^\W\d_]+$", _base(p[4]))
+        if m and w[0] - p[2] > -0.1 * h:
+            (against if w[0] - p[2] < 0.1 * h else apart).add(m.group() + w[4][0])
+    return against, apart
+
+
+def _oxr_marks(blocks):
+    t = _base_text(" ".join(re.sub(r"<[^<>]*>", " ", b.get("content") or "") for b in blocks))
+    return ({m.group(1) + m.group(2) for m in re.finditer(r"([^\W\d_]+)([,.;:])", t)},
+            {m.group(1) + m.group(2) for m in BEFORE_MARK.finditer(t)})
+
+
+def _base_text(t):
+    """_base word by word, the spaces kept"""
+    return " ".join(_base(x) for x in t.split())
 
 
 def _layer(pg):
@@ -55,7 +95,8 @@ def apply(pdf_path, mdir, md, layer_pages, second, reported=()):
         if pg_no not in layer_pages:
             continue
         ows, orows = _oxr(second[pg_no]) if second and pg_no in second else (set(), set())
-        lay = None
+        omarks = _oxr_marks(second[pg_no]) if second and pg_no in second else None
+        lay = marks = None
         for uid, typ, part in MR.units(blocks):
             if typ not in PRIMARY_PROSE:
                 continue
@@ -100,6 +141,22 @@ def apply(pdf_path, mdir, md, layer_pages, second, reported=()):
                     i += 1
             if out:
                 new = "".join(out) + cur[last:]
+            if omarks:
+                if marks is None:
+                    marks = _marks(LY.page(pdf, pg_no - 1))
+                cut = []
+                for m in BEFORE_MARK.finditer(new):
+                    key = _base(m.group(1)) + m.group(2)
+                    if DR._in_math(new, m.start()) or not (key in marks[0] and key not in marks[1]):
+                        continue
+                    if key in omarks[0] and key not in omarks[1]:
+                        cut.append(m.end(1))
+                        edits.append({"page": pg_no, "route": "spacing before a mark (text layer)", "by": "text layer",
+                                      "old": m.group(0), "new": m.group(1) + m.group(2)})
+                        n["spaces before a mark dropped"] += 1
+                for at in reversed(cut):
+                    new = new[:at] + new[at + 1:]
+            if new != cur:
                 md = md.replace(cur, new, 1)
     return md, edits, issues, joined, dict(n)
 

@@ -327,3 +327,44 @@ def test_math_glyphs_the_layer_has_as_spaces_are_found():
             return {"blocks": [{"lines": [{"spans": self.spans}]}]}
     assert len(LY.blank_glyphs(Page([span("Cambria Math", "    (     ) = ")]))) == 2
     assert LY.blank_glyphs(Page([span("Times New Roman", "a    b")])) == []    # spaces outside a math font
+
+
+def test_space_before_a_mark_the_page_prints_against_the_word_is_dropped(tmp_path):
+    import json
+    import pymupdf
+    from mineru_plus.check import respace as RSP
+    doc = pymupdf.open()
+    pg = doc.new_page()
+    # a spacing accent and a space glyph, the comma drawn over the space (11-03, PTA-05: 'Pare´' ',' 0.1 pt apart)
+    pg.insert_text((72, 72), "Pare´ ")
+    pg.insert_text((72 + pymupdf.get_text_length("Pare´", fontsize=11), 72), ", L., and Smith")
+    pg.insert_text((72 + pymupdf.get_text_length("Pare´, L., and Smith ", fontsize=11) + 3, 72), ", J.")  # apart
+    pg.insert_text((72, 100), "a response,39 to it")
+    pdf = tmp_path / "t.pdf"
+    doc.save(pdf)
+    text = "Paré , L., and Smith , J. a response ,39 to it"
+    mdir = tmp_path / "mineru"
+    mdir.mkdir()
+    (mdir / "structured_content.json").write_text(json.dumps({"pages": [{"page_idx": 0, "blocks": [
+        {"type": "text", "content": text, "bbox": [0, 0, 1, 1]}]}]}))
+    oxr = {1: [{"type": "Text", "content": "Paré, L., and Smith, J. a response,39 to it"}]}
+    md, edits, issues, _, _ = RSP.apply(str(pdf), mdir, "# T\n\n" + text + "\n", {1}, oxr)
+    # the gap the layer prints stays; before a number the space is left (one token would be made of two)
+    assert "Paré, L., and Smith , J. a response ,39 to it" in md and issues == []
+    assert RSP.apply(str(pdf), mdir, "# T\n\n" + text + "\n", {1}, None)[1:3] == ([], [])   # no OXR: nothing
+
+
+def test_line_break_hyphen_set_apart_after_a_spacing_accent(tmp_path):
+    import pymupdf
+    from mineru_plus.check import linebreak as LB
+    doc = pymupdf.open()
+    pg = doc.new_page()
+    # the layer's line ends 'Gonza´' then a hyphen against it (11-03, PTA-05: '\xad' with no gap)
+    pg.insert_text((72, 72), "Prat, A., Gonza´ ")
+    pg.insert_text((72 + pymupdf.get_text_length("Prat, A., Gonza´", fontsize=11), 72), "-")
+    pg.insert_text((72, 86), "lez Farre, B.")
+    doc.save(tmp_path / "t.pdf")             # a named document: the layer's word cache is per document name
+    bk = LB.breaks(pymupdf.open(tmp_path / "t.pdf")[0])
+    assert ("Gonza", "lez") in bk
+    # the split holds the reading's letters, which the repair finds in the block
+    assert LB.is_linebreak({"primary": "Gonzá - lez", "oxr": "González"}, bk) == ("Gonzá", "lez", "Gonza")
