@@ -12,6 +12,10 @@ from ..readers import mineru as MR, oxr as OX
 
 TAG = re.compile(r"</?[A-Za-z][A-Za-z0-9]*(?:\s[^<>]*)?/?>")
 TOK = re.compile(r"[^\W_]+(?:[.,·:][0-9]+)*|[^\w\s]")
+# the target of a markdown link is not printed, whatever its text holds: a reference's link text with its own brackets
+# ('arXiv [cs.LG] (2023) doi:](http://paperpile.com/...)') escaped LINK, and the url's words were taken for text only
+# the primary read (11-03, PTA-11 and PTA-12 supplements: 9 such issues, all closed unchanged by L1-3)
+LINK_TARGET = re.compile(r"\]\((?:[A-Za-z][A-Za-z0-9+.-]*:|www\.)[^)\s]*\)")
 PRIMARY_PROSE = {"text", "paragraph_title", "list", "page_footnote", "doc_title", "ref_text", "aside_text",
                  "image_caption", "table_caption", "chart_caption", "image_footnote", "table_footnote",
                  "chart_footnote", "code_caption", "code_footnote"}
@@ -141,7 +145,7 @@ def kind(a, b):
 
 
 def toks(s):
-    s = unicodedata.normalize("NFKC", html.unescape(TAG.sub(" ", s)))
+    s = unicodedata.normalize("NFKC", html.unescape(TAG.sub(" ", LINK_TARGET.sub("] ", s))))
     return TOK.findall(s)
 
 
@@ -190,6 +194,9 @@ def printed_map(raw):
     for m in LINK.finditer(raw):                        # '[' and '](url)' are not printed
         skip[m.start()] = 1
         for k in range(m.end(1), m.end()):
+            skip[k] = 1
+    for m in LINK_TARGET.finditer(raw):                 # a link target LINK missed: its text held brackets
+        for k in range(m.start(), m.end()):
             skip[k] = 1
     for m in LIST_MARK.finditer(raw):                   # list and heading markers are markdown, not print
         for k in range(m.start(1), m.end()):

@@ -488,7 +488,7 @@ def _doubled(layer, prim):
     return pairs >= 2 and out == b
 
 
-def apply(md, pages, found, second=None):
+def apply(md, pages, found, second=None, work=None):
     """write the printed findings into full.md, right to left within a block, on the block as it now stands in
     full.md (the text find() compared); returns (md, edits, issues, counts).
     A change of the primary's characters (not a drop) is written only when the second reading also has the layer's
@@ -502,7 +502,7 @@ def apply(md, pages, found, second=None):
         if pg not in seen:
             seen[pg] = "".join(c for c, _ in plain_map(" ".join(b.get("content") or "" for b in second.get(pg, []))))
         return lay in seen[pg]
-    by_block = collections.defaultdict(list)
+    by_block, unplaced = collections.defaultdict(list), []
     for f in found:
         n[f["verdict"]] += 1
         if f["verdict"] == "not printed" and f.get("out_of_order"):
@@ -556,8 +556,7 @@ def apply(md, pages, found, second=None):
                 _edit_plain(new, f) if unchecked else edit(new, f)
             if r is None:
                 n["printed, not placed"] += 1
-                issues.append({"kind": "text layer not in the parse", "why": "printed (jev); not placed, edit by hand",
-                               "page": pg, "layer": f["layer_words"], "parse": f["prim"], "crop": f["crop"]}); continue
+                unplaced.append((f, raw)); continue
             new = r[0]
             if f.get("retyped"):
                 spans.add(tuple(f["retype"]["span"]))
@@ -568,4 +567,61 @@ def apply(md, pages, found, second=None):
             md = md.replace(raw, new, 1)
             edits += done
             n["written"] += len(done)
+    closed = _parse_has(unplaced, work) if work is not None else set()
+    for f, raw in unplaced:
+        if f["id"] in closed:
+            n["printed, not placed: the parse has it (jev)"] += 1
+            continue
+        issues.append({"kind": "text layer not in the parse", "why": "printed (jev); not placed, edit by hand",
+                       "page": f["page"], "layer": f["layer_words"], "parse": f["prim"], "crop": f["crop"]})
     return md, edits, issues, dict(n)
+
+
+PASSAGE_INSTR = ("The image is a crop of a printed page; a thin red box marks some text. The quoted passage is a reader's "
+                 "transcription of the text around it, formulas written as the characters they print (subscripts and "
+                 "superscripts inline, markup left out). Decide whether what is printed inside the red box is in the "
+                 "quoted passage. Compare letters, digits and symbols; spaces and line breaks do not matter.")
+
+
+def _formula_around(raw, f):
+    r"""the parse's characters at a finding: its span, and the whole formula where the place is inside one (11-03,
+    PTA-07: the span held '1.0', its formula '$P = 1.0 \dot { 7 } \times 10 ^ { - 1 }$')"""
+    s, e = f["raw_span"] or [f["raw_after"] or 0] * 2
+    if _in_math(raw, s):
+        d = [m.start() for m in re.finditer(r"(?<!\\)\$", raw)]
+        s = max([x for x in d if x < s] or [s]); e = min([x for x in d if x >= e] or [e]) + 1
+    return raw[s:e]
+
+
+def _parse_has(unplaced, work):
+    """ids of printed findings the parse holds after all, by jev: what the layer has and the alignment did not place
+    in the parse is often there in other markup or another order (11-03, L1-3 of 9 papers: 33 of 38 such issues
+    closed unchanged by the executors and their checkers; 'R2' and 'i' of '$R_{i}^{2}$', a Word equation's '𝑃' kept
+    elsewhere by the layer, a layer font that maps 'S_Chemo(t)' to '𝑆!"#$%(𝑡)'). Where the parse has characters at
+    the place, jev is asked whether the box prints exactly those; where it has none, whether what the box prints is
+    in the parse's passage around the place. Asked only where the layer's characters there hold a letter or digit,
+    and the parse's formula there no LaTeX accent: jev read '**,' as the parse's '**;', and '1.07' was the plain form of
+    '1.0\\dot{7}' (the same 38: 17 of the 33 closed this way, none of the 5 the executors corrected)."""
+    qs, ids = [], {}
+    for f, raw in unplaced:
+        lay = f.get("insert") or ""
+        if not any(c.isalnum() for c in lay):
+            continue
+        a = (f["raw_span"] or [f["raw_after"] or 0])[0] or 0
+        if any(c in _formula_around(raw, f) for c in ACCENT_CMDS):
+            continue
+        img = "data:image/png;base64," + base64.b64encode(open(f["crop"], "rb").read()).decode()
+        if f["prim"]:
+            q = {"state": f"Quoted text: «{f['prim']}»", "instructions": INSTR,
+                 "options": {"has": f"The red box shows exactly «{f['prim']}»",
+                             "lacks": f"The red box shows something different from «{f['prim']}»"}}
+        else:
+            passage = "".join(c for c, _ in plain_map(raw[max(0, a - 90): a + 90]))
+            q = {"state": f"Quoted passage: «{passage}»", "instructions": PASSAGE_INSTR,
+                 "options": {"has": "Everything printed inside the red box is in the quoted passage",
+                             "lacks": "Something printed inside the red box is missing from the quoted passage"}}
+        qid = "p" + f["id"] + "~" + hashlib.md5(q["state"].encode()).hexdigest()[:8]
+        qs.append({"id": qid, "images": [img], **q})
+        ids[qid] = f["id"]
+    v = jev.ask(qs, work, "parse_has") if qs else {}
+    return {ids[k] for k, x in v.items() if x == "has"}

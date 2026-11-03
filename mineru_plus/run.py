@@ -336,8 +336,7 @@ def _parse(pdf, out, src, source=None):
                                                f"joined where the text layer and OXR have the word"}
     # text-layer content the primary dropped or changed, judged by jev and written back (check/dropped.py)
     found = DR.judge(DR.find(pdf, mdir, out / "checks" / "dropped", md), out / "checks" / "dropped")
-    md, dedits, dissues, dcount = DR.apply(md, MR.pages(mdir), found,
-                                           oxp)
+    md, dedits, dissues, dcount = DR.apply(md, MR.pages(mdir), found, oxp, out / "checks" / "dropped")
     edits += dedits
     issues += dissues
     (out / "checks" / "dropped.json").write_text(json.dumps(found, ensure_ascii=False, indent=1))
@@ -457,7 +456,10 @@ def _parse(pdf, out, src, source=None):
     md = MK.add(md, marked)
     checks["marks"] = {"marked boxes": len(marked), "summary": f"{len(marked)} check boxes holding a mark drawn as an "
                        f"image, written to the closing section with their column and row"}
-    md, mst, mi = MG.add(pdf, mdir, md, set(prof["pages_without_text_layer"]), out / "checks" / "margins")
+    md, mst, mi, logos = MG.add(pdf, mdir, md, set(prof["pages_without_text_layer"]), out / "checks" / "margins")
+    # a logo is a picture: what the primary read in it is no text OXR missed (11-03, PTA-05: a side note 'CellPress')
+    issues = [i for i in issues if not (i["kind"] == "text only the primary read" and
+                                        (i["page"], str(i.get("block"))) in logos)]
     checks["margins"] = {**mst, "summary": f"{mst.get('written', 0)} page headers, footers, page numbers and side notes the "
                           f"reader left out of its markdown written to the closing section; {mst.get('equal to the text layer', 0)} "
                           f"equal the text layer, {mst.get('differs from the text layer', 0)} differ (open issues), "

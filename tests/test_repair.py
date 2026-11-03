@@ -269,7 +269,7 @@ def test_running_head_equal_to_a_heading_elsewhere_is_kept(tmp_path):
     (mdir / "structured_content.json").write_text(json.dumps({"pages": [
         {"page_idx": 0, "blocks": [head]},
         {"page_idx": 1, "blocks": [{"type": "paragraph_title", "content": "Article", "bbox": [0.1, 0.2, 0.3, 0.25]}]}]}))
-    md, _, _ = MG.add(str(pdf), mdir, "## Article\n\nBody text.\n")
+    md, _, _, _ = MG.add(str(pdf), mdir, "## Article\n\nBody text.\n")
     assert "- p1 header: Article" in md
 
 
@@ -439,11 +439,41 @@ def test_logo_read_from_a_picture_is_left_out_of_the_margins(tmp_path, monkeypat
         asked.extend(q["id"] for q in qs)         # in page order: the 'Q' box first; jev is shown no reading
         return {q["id"]: "logo" if k == 0 else "printed" for k, q in enumerate(qs)}
     monkeypatch.setattr(MG.jev, "ask", fake)
-    md, stats, issues = MG.add(str(pdf), mdir, "# T\n\nBody.\n", work=tmp_path / "m")
+    md, stats, issues, _ = MG.add(str(pdf), mdir, "# T\n\nBody.\n", work=tmp_path / "m")
     assert "header: Article" in md and "header: Running head" in md and ": Q" not in md
     assert stats["logos and badges (jev), left out"] == 1
     assert len(asked) == 2                     # 'Q' and the set-off 'Running head'; the layer confirms 'Article'
     assert [i["kind"] for i in issues] == ["margin text differs from the text layer"]   # the set-off box
     monkeypatch.setattr(MG.jev, "ask", lambda qs, work, tag: {q["id"]: "undecided" for q in qs})
-    md, stats, issues = MG.add(str(pdf), mdir, "# T\n\nBody.\n", work=tmp_path / "m2")
+    md, stats, issues, _ = MG.add(str(pdf), mdir, "# T\n\nBody.\n", work=tmp_path / "m2")
     assert ": Q" in md and sorted(i["kind"] for i in issues) == ["margin block: a picture or printed text, not settled"] * 2
+
+def test_printed_finding_not_placed_is_closed_where_jev_finds_the_parse_has_it(tmp_path, monkeypatch):
+    from mineru_plus.check import dropped as DR
+    crop = tmp_path / 'c.png'
+    crop.write_bytes(b'png')
+    raw = 'the model fit $R_{i}^{2} = 0.9$ and $1.0\\dot{7}$ here'
+    s = raw.index('1.0')
+    base = {'page': 1, 'layer_words': 'w', 'crop': str(crop), 'raw_after': None}
+    fs = [dict(base, id='a', insert='R2', prim='', raw_span=None, raw_after=raw.index('')),   # passage question
+          dict(base, id='b', insert='𝑃', prim='P', raw_span=[0, 3]),                            # exact question
+          dict(base, id='c', insert=',', prim=';', raw_span=[0, 3]),                            # no letter: not asked
+          dict(base, id='d', insert='7', prim='7', raw_span=[s, s + 3])]                        # its formula has an accent: not asked
+    asked = {}
+    def fake(qs, work, tag):
+        asked.update({q['id']: q for q in qs})
+        return {q['id']: 'has' for q in qs}
+    monkeypatch.setattr(DR.jev, 'ask', fake)
+    closed = DR._parse_has([(f, raw) for f in fs], tmp_path)
+    assert closed == {'a', 'b'}
+    qa, qb = sorted(asked.values(), key=lambda q: q['id'])
+    assert 'modelfitRi2=0.9' in qa['state'] and qa['instructions'] == DR.PASSAGE_INSTR
+    assert qb['options']['has'] == 'The red box shows exactly «P»'
+
+
+def test_a_link_target_whose_text_holds_brackets_is_not_printed():
+    from mineru_plus.check import two_readings as TR
+    # 11-03, PTA-12 supplement: the url of a reference link was taken for text only the primary read
+    raw = 'arXiv \\[cs.CV\\] (2023).](http://paperpile.com/b/zJE8P4/TibRC)\n4. [Ding, J.](http://x.y/z) LongNet'
+    assert TR.printed_toks(raw)[0] == 'arXiv [cs.CV] (2023).\n4. Ding, J. LongNet'
+    assert 'paperpile' not in TR.toks(raw)

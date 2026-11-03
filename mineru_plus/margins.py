@@ -147,7 +147,7 @@ def add(pdf, mdir, md, no_layer_pages=(), work=None):
                 item["key"] = (text, place)
                 asked.setdefault(item["key"], (page, box))
             ask.append((item, item.get("key")))
-    seen = {}
+    seen, left_out = {}, set()
     if asked and work is not None:
         Path(work).mkdir(parents=True, exist_ok=True)
         seen = _pictures(asked, work)
@@ -155,6 +155,7 @@ def add(pdf, mdir, md, no_layer_pages=(), work=None):
         v = seen.get(key) if key else None
         if v == "logo":
             stats["logos and badges (jev), left out"] += 1
+            left_out.add((item["page"], str(item["block"])))
             continue
         stats["written"] += 1
         lines.append(item["line"])
@@ -179,4 +180,4 @@ def add(pdf, mdir, md, no_layer_pages=(), work=None):
     issues = [{k: v for k, v in g.items() if k not in ("page", "block")} for g in grouped.values()]
     if lines:
         md = md.rstrip("\n") + "\n\n## Page headers, footers and page numbers\n\n" + "\n".join(lines) + "\n"
-    return md, dict(stats), issues
+    return md, dict(stats), issues, left_out
