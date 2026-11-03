@@ -339,7 +339,9 @@ reading. It also finds split words both readers spelled alike against the source
 Nothing is downloaded; without `--source` the run is as before. `report.md` says what the source settled.
 The source need not be the same version as the PDF, but a line-break spelling follows the source only where the
 PDF's own mid-line usage of the word does not say otherwise; where the two disagree (an author manuscript against
-the publisher's PDF) neither is taken and the place is an open issue.
+the publisher's PDF) neither is taken and the place is an open issue. With `--source-same-version` (the
+publisher's XML or HTML of the publisher's PDF) the source's spelling stands. Usage leaves the reference list out:
+a cited title is spelled as its own authors spell it.
 On 15 documents with a source (7 arXiv HTML, 8 JATS), compared with runs without it: 19 line-break spellings
 changed to the source's (`under-represented`, `down-regulation`, `pretrained`), 1 formula letter corrected that the
 judge had confirmed wrongly, 9 open disagreements settled where the page prints a typo or the judges were undecided;

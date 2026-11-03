@@ -239,7 +239,7 @@ def _move_figures(pdf, rdir, md):
     return DETAILS.sub(take, md), figs, undeclared
 
 
-def parse(pdf, out, sources=()):
+def parse(pdf, out, sources=(), same_version=False):
     """the PDF is read from a local copy: on a mounted Windows drive every page's text extraction goes back to the
     file (10-29: a mounted Windows drive, 27 pages: 14.7 s to extract all words against 0.2 s from the local disk; 527 of a run's
     820 s were text extraction)"""
@@ -247,7 +247,7 @@ def parse(pdf, out, sources=()):
     tmp = Path(tempfile.mkdtemp(prefix="mineru_plus_"))
     try:
         shutil.copyfile(src, tmp / src.name)
-        return _parse(tmp / src.name, out, src, SRC.load(sources))
+        return _parse(tmp / src.name, out, src, SRC.load(sources, same_version))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
@@ -297,7 +297,7 @@ def _parse(pdf, out, src, source=None):
     layer_pages = set(MR.pages(mdir)) - set(prof["pages_without_text_layer"])
     om = OM.find(pdf, mdir, odir) if oxr_ok else []
     subs = [s for s in subs if not any(OM.overlaps(o, s) for o in om)] + om
-    subs = RS.settle(pdf, subs, out / "checks", source)
+    subs = RS.settle(pdf, subs, out / "checks", source, LB.reference_boxes(mdir))
     md, edits, open_items = RP.apply(md0, MR.pages(mdir), subs)
     # text-layer content the primary dropped or changed, judged by jev and written back (check/dropped.py)
     found = DR.judge(DR.find(pdf, mdir, out / "checks" / "dropped", md), out / "checks" / "dropped")
@@ -520,6 +520,10 @@ def main(argv=None):
                     help="the paper's source document, if you have it: JATS or other XML, HTML (arXiv, publisher), a .tex "
                          "file, or a LaTeX source directory or .tar(.gz); repeatable. It settles line-break spellings and "
                          "letter differences the text layer does not decide")
+    ap.add_argument("--source-same-version", action="store_true",
+                    help="the source is the same version as the PDF (the publisher's XML or HTML for the publisher's "
+                         "PDF): its spelling of a line-break word stands where the PDF's mid-line usage differs; "
+                         "without it such a place is an open issue")
     ap.add_argument("pdf", help="the PDF to parse")
     ap.add_argument("out_dir", help="the output directory")
     a = ap.parse_args(argv)
@@ -533,7 +537,7 @@ def main(argv=None):
         backends.get("second_reader")
     except config.ConfigError as e:          # the run goes on without a second reading, and says so in its report
         print(f"mineru_plus: warning: {e}", file=sys.stderr)
-    print(render(parse(a.pdf, a.out_dir, a.source)))
+    print(render(parse(a.pdf, a.out_dir, a.source, a.source_same_version)))
 
 
 if __name__ == "__main__":

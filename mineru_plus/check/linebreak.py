@@ -68,14 +68,31 @@ def is_linebreak(item, bk):
     return None
 
 
-def midline_index(docs):
-    """lower-cased mid-line words of the documents' text layers with their counts (words split at a line end excluded)"""
+def reference_boxes(mdir):
+    """{page: [page-normalised box]} of the reader's reference-list blocks"""
+    from ..readers import mineru as MR
+    out = {}
+    for pg, bl in MR.pages(mdir).items():
+        for _, b in bl:
+            if b.get("sub_type") == "ref_text" and b.get("bbox"):
+                out.setdefault(pg, []).append(b["bbox"])
+    return out
+
+
+def midline_index(docs, skip=None):
+    """lower-cased mid-line words of the documents' text layers with their counts (words split at a line end
+    excluded). skip: {page: [page-normalised box]} left out, the reference list: a cited title is spelled as its
+    own authors spell it, not as this paper does (11-02, PTA-11: 'pre-trained' mid-line only in a reference title)"""
     idx = {}
     for doc in docs:
         for i in range(doc.page_count):
             pg = LY.page(doc, i)
+            boxes, W, H = (skip or {}).get(i + 1, []), pg.rect.width, pg.rect.height
             lines = {}
             for w in LY.words(pg):
+                cx, cy = (w[0] + w[2]) / 2 / W, (w[1] + w[3]) / 2 / H
+                if any(b[0] <= cx <= b[2] and b[1] <= cy <= b[3] for b in boxes):
+                    continue
                 lines.setdefault((w[5], w[6]), []).append(w)
             for ws in lines.values():
                 for i, w in enumerate(ws):
@@ -105,7 +122,7 @@ def agreed_splits(pdf_path, mdir, subs, src=None):
     import pymupdf
     from ..readers import mineru as MR
     pdf = pymupdf.open(pdf_path)
-    idx = midline_index([pdf])
+    idx = midline_index([pdf], reference_boxes(mdir))
     A = MR.pages(mdir)
     # an item covers the split word where both its readings hold the word's letters: then the hyphen is its question.
     # An item about other letters of the word ('immunehot' against OXR's 'immunohot', 'deescalation' against

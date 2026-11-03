@@ -110,8 +110,9 @@ def hyphened(x):
 
 
 class Source:
-    def __init__(self, text, names=()):
+    def __init__(self, text, names=(), same_version=False):
         self.names = list(names)
+        self.same_version = same_version
         self.chars = len(text)
         self._l, self._h = letters(text), hyphened(text)
 
@@ -139,8 +140,8 @@ class Source:
         return self._says(letters, self._l, left, a, b, right)
 
 
-def load(paths):
+def load(paths, same_version=False):
     paths = [p for p in (paths or []) if p]
     if not paths:
         return None
-    return Source(" ".join(_read(p) for p in paths), [Path(p).name for p in paths])
+    return Source(" ".join(_read(p) for p in paths), [Path(p).name for p in paths], same_version)

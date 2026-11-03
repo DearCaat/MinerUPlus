@@ -187,10 +187,10 @@ def _source_may_spell(a, b):
         abs(len(ta) - len(tb)) <= 1 and max(len(ta), len(tb)) <= 2
 
 
-def settle(pdf, subs, work, src=None):
+def settle(pdf, subs, work, src=None, refs=None):
     work = Path(work)
     doc = pymupdf.open(pdf)
-    usage_idx = LB.midline_index([doc])
+    usage_idx = LB.midline_index([doc], refs)
     breaks = {}
     spell_q, char_q = [], []
     for i, s in enumerate(subs):
@@ -245,8 +245,9 @@ def settle(pdf, subs, work, src=None):
                 uv = "hyphen" if u["hyphen"] and not u["joined"] else "joined" if u["joined"] and not u["hyphen"] else None
                 # a source of another version than the page (11-02, PTA-04: the author manuscript writes
                 # 'over-expression', the publisher's page prints 'overexpression' mid-line): where the page's own
-                # usage says otherwise, neither is taken and the item goes to the caller
-                if uv and uv != sv:
+                # usage says otherwise, neither is taken and the item goes to the caller. A source the caller
+                # declares the same version is the text of this place; the usage elsewhere is no evidence against it
+                if uv and uv != sv and not src.same_version:
                     s["verdict"], s["by"] = "undecided", "source document against the document's usage"
                 else:
                     s["verdict"], s["by"] = sv, "source document"
