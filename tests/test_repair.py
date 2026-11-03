@@ -412,3 +412,28 @@ def test_margin_link_printed_as_its_address_once():
     from mineru_plus import margins as MG
     u = "https://doi.org/10.1016/j.cell.2026.04.023"
     assert MG.LINK.sub(r"\1", f"[{u}]({u})") == u
+
+
+def test_logo_read_from_a_picture_is_left_out_of_the_margins(tmp_path):
+    import json
+    import pymupdf
+    from mineru_plus import margins as MG
+    doc = pymupdf.open()
+    pg = doc.new_page()                      # 595 x 842
+    pg.insert_text((72, 40), "Article", fontsize=11)
+    pg.insert_text((400, 40), "Running head", fontsize=11)
+    pdf = tmp_path / "t.pdf"
+    doc.save(pdf)
+    W, H = 595, 842
+    nb = lambda x0, y0, x1, y1: [x0 / W, y0 / H, x1 / W, y1 / H]
+    mdir = tmp_path / "mineru"
+    mdir.mkdir()
+    (mdir / "structured_content.json").write_text(json.dumps({"pages": [{"page_idx": 0, "blocks": [
+        {"type": "header", "content": "Article", "bbox": nb(70, 30, 120, 44)},
+        {"type": "header", "content": "Q", "bbox": nb(250, 28, 270, 46)},                 # a logo: no layer text
+        {"type": "header", "content": "Running head", "bbox": nb(400, 46, 470, 58)},      # box set off its text
+        {"type": "text", "content": "Body.", "bbox": nb(72, 100, 300, 120)}]}]}))
+    md, stats, issues = MG.add(str(pdf), mdir, "# T\n\nBody.\n")
+    # 11-03 文浩: a logo is a picture, its text is not read
+    assert "header: Article" in md and "header: Running head" in md and ": Q" not in md
+    assert stats["logos and badges drawn as pictures, left out"] == 1 and issues == []

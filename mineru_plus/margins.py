@@ -5,7 +5,11 @@ running text is written to a closing section of full.md, page by page, keeping t
 
 Each is checked against the text layer of its box where the page has one (born-digital pages: the layer is the
 document's own text). A margin block whose characters differ from the layer is an open issue with its page; pages
-without a text layer, and logos drawn as images (no layer text in the box), are written as read and counted."""
+without a text layer are written as read and counted.
+
+On a page with a text layer, a block whose characters the layer does not hold, in its box or around it, is a logo or
+badge drawn as a picture, and is left out: not written, not reported, counted (11-03 文浩: "logo是logo为什么算印的字？
+本质不和图片一样？我们不读图，不做图片文本的解析"; the readings were 'Q', 'll', 'CelPress', 'heck k for')."""
 import collections, re
 import pymupdf
 from .readers import mineru as MR
@@ -44,6 +48,14 @@ def _outlined(pg, r, drawings):
                 any(it[0] == "c" for it in d["items"]) and not any(q.intersects(w) for w in words):
             return True
     return False
+
+
+def _near(pg, box, chars):
+    """the layer prints these characters in a run of its words in and around the box (its height on every side)"""
+    k = "".join(c.lower() for c in chars if c.isalnum())
+    around = box + (-box.height, -box.height, box.height, box.height)
+    lay = "".join(c.lower() for w in LY.words(pg, around) for ch in w[4] for c in DR._norm_char(ch) if c.isalnum())
+    return bool(k) and k in lay
 
 
 def add(pdf, mdir, md, no_layer_pages=()):
@@ -85,9 +97,9 @@ def add(pdf, mdir, md, no_layer_pages=()):
             if already(text):
                 stats["already in text"] += 1
                 continue
-            stats["written"] += 1
-            lines.append(f"- p{pg} {NAMES[b['type']]}: {WS.sub(' ', text)}")
+            line = f"- p{pg} {NAMES[b['type']]}: {WS.sub(' ', text)}"
             if pg in no_layer_pages or not b.get("bbox"):
+                stats["written"] += 1; lines.append(line)
                 stats["unverified (no text layer)"] += 1
                 continue
             lay = layer_tokens(pdf, pg, b["bbox"])
@@ -97,25 +109,19 @@ def add(pdf, mdir, md, no_layer_pages=()):
             shown = LINK.sub(r"\1", text)
             lc = "".join(c for w in lay for ch in w for c in DR._norm_char(ch))
             bc = "".join(c for c, _ in DR.plain_map(shown))
-            if len(lc) < 0.5 * len(bc):               # little or nothing on the layer there: a logo or badge drawn as an image
-                                            # (10-29: the CellPress logo holds only 'll' in its box)
-                stats["read from an image (little or no layer text in its box)"] += 1
-                # written as read and reported: a badge's reading can be broken (11-02: 'heck k for' for the
-                # 'Check for updates' badge)
-                issues.append({"kind": "margin text read from an image, not checked", "page": pg, "block": bi,
-                               "type": b["type"], "text": text, "layer": " ".join(lay)[:500]})
-                continue
             page = LY.page(pdf, pg - 1)
             box = pymupdf.Rect(b["bbox"][0] * page.rect.width, b["bbox"][1] * page.rect.height,
                                b["bbox"][2] * page.rect.width, b["bbox"][3] * page.rect.height) * page.derotation_matrix
             if pg not in drawn:
                 drawn[pg] = page.get_cdrawings()
-            if _outlined(page, box, drawn[pg]):
-                stats["read from an image (glyphs drawn as curves beside the layer text in its box)"] += 1
-                issues.append({"kind": "margin text read from an image, not checked", "page": pg, "block": bi,
-                               "type": b["type"], "text": text, "layer": " ".join(lay)[:500]})
+            # little or nothing on the layer in the box (10-29: the CellPress logo holds only 'll'), or glyphs drawn
+            # as curves beside the layer words there (11-03: 'Ce' and 'Press' around a layer 'll'): a picture,
+            # unless the layer prints the block's characters just around the box (a box the reader set off its text)
+            if len(lc) < 0.5 * len(bc) and not _near(page, box, bc) or _outlined(page, box, drawn[pg]):
+                stats["logos and badges drawn as pictures, left out"] += 1
                 continue
-            if lc == bc or _same_words(lay, shown):
+            stats["written"] += 1; lines.append(line)
+            if lc == bc or _same_words(lay, shown) or len(lc) < 0.5 * len(bc):
                 stats["equal to the text layer"] += 1
             else:
                 stats["differs from the text layer"] += 1

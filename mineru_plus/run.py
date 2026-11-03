@@ -460,7 +460,9 @@ def _parse(pdf, out, src, source=None):
     checks["margins"] = {**mst, "summary": f"{mst.get('written', 0)} page headers, footers, page numbers and side notes the "
                           f"reader left out of its markdown written to the closing section; {mst.get('equal to the text layer', 0)} "
                           f"equal the text layer, {mst.get('differs from the text layer', 0)} differ (open issues), "
-                          f"{mst.get('unverified (no text layer)', 0)} on pages without a text layer"}
+                          f"{mst.get('unverified (no text layer)', 0)} on pages without a text layer; "
+                          f"{mst.get('logos and badges drawn as pictures, left out', 0)} logos and badges left out (a "
+                          f"picture's text is not read)"}
     issues += mi
     if "characters" in checks:            # disagreements a later step settled (dropped, retyped formulas, tables)
         issues, later = _settled_later(md, subs, issues)
