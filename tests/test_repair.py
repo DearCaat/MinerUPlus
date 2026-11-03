@@ -108,3 +108,60 @@ def test_line_break_word_written_beside_markup():
     span = RP._locate(block, s) or RP._locate_split(block, s)
     assert block[span[0]:span[1]] == "welldocumented"
     assert RP._new_span(block[span[0]:span[1]], s) == "well-documented"
+
+
+def test_table_cell_with_an_entity_keeps_positions():
+    from mineru_plus.check import table_layer as TL
+    cell = {"text": "&lt;0.0001"}
+    chars = TL.cell_chars(cell)
+    assert [c for c, _ in chars] == list("<0.0001")
+    assert chars[0][1] is None and cell["text"][chars[2][1]] == "."
+
+
+def test_spacing_the_reader_made_up_is_settled_by_the_layer_words(tmp_path):
+    import pymupdf
+    from mineru_plus.check import resolve as RS
+    doc = pymupdf.open()
+    pg = doc.new_page()
+    pg.insert_text((72, 72), "the 90% confidence interval (CI) of the flow")
+    pdf = tmp_path / "s.pdf"
+    doc.save(pdf)
+    pg = pymupdf.open(pdf)[0]
+    assert RS._layer_spacing_says(pg, {"primary": "i nterval", "oxr": "interval"}) == "oxr"
+    assert RS._layer_spacing_says(pg, {"primary": "C I", "oxr": "CI"}) == "oxr"
+    assert RS._layer_spacing_says(pg, {"primary": "flow", "oxr": "f low"}) is None          # OXR cut the word
+    assert RS._layer_spacing_says(pg, {"primary": "Shulman , 1,26", "oxr": "Shulman,1,26"}) is None
+    assert RP._respace("confidence i nterval", "confidence interval") == "confidence interval"
+    assert RP._respace("patientsUCMC", "patients UCMC") == "patients UCMC"
+    assert RP._respace("**i nterval**", "interval") is None
+
+
+def test_split_word_both_readers_join_is_written_as_the_document_spells_it(tmp_path):
+    import json
+    import pymupdf
+    from mineru_plus.check import linebreak as LB
+    doc = pymupdf.open()
+    pg = doc.new_page()
+    for k, line in enumerate(["The node-positive cohort and the", "similar results in node-", "positive patients."]):
+        pg.insert_text((72, 72 + 30 * k), line)
+    pdf = tmp_path / "n.pdf"
+    doc.save(pdf)
+    md = "The node-positive cohort and the similar results in nodepositive patients."
+    mdir = tmp_path / "mineru"
+    mdir.mkdir()
+    (mdir / "structured_content.json").write_text(json.dumps(
+        {"pages": [{"page_idx": 0, "blocks": [{"type": "text", "content": md, "bbox": [0, 0, 1, 1]}]}]}))
+    subs = LB.agreed_splits(str(pdf), mdir, [])
+    assert [(x["primary"], x["oxr"]) for x in subs] == [("nodepositive", "node-positive")]
+    assert "usage" in subs[0]["source"]
+
+
+def test_dingbat_bullets_are_mapped_by_their_font():
+    from mineru_plus import layer as LY
+    assert LY.DINGBATS["wingdings"][0x6C] == "●" and LY.DINGBATS["symbol"][0xB7] == "•"
+
+
+def test_margin_text_already_in_the_body_in_other_markup():
+    from mineru_plus import margins as MG
+    body = "A full list of affiliations appears at the end of the paper. e-mail: [x@y.org](mailto:x@y.org)"
+    assert MG._alnum("A full list of affiliations appears at the end of the paper. e-mail: x@y.org") in MG._alnum(body)

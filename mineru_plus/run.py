@@ -231,7 +231,7 @@ def _move_figures(pdf, rdir, md):
     def take(m):
         region = WS.sub(" ", m.group(0))
         for f in figs:
-            if not f["in_markdown"] and WS.sub(" ", f["text"]).strip() in region:
+            if f["transcribed"] and not f["in_markdown"] and WS.sub(" ", f["text"]).strip() in region:
                 f["in_markdown"] = True
                 return ""
         undeclared.append(m.group(0)[:2000])
@@ -277,120 +277,131 @@ def _parse(pdf, out, src, source=None):
     issues = [{"kind": "undeclared <details> left in text", "text": u} for u in undeclared]
     checks, unchecked = {}, []
     md, edits = md0, []
-    if "oxr" in errs:
+    oxr_ok = "oxr" not in errs
+    if not oxr_ok:
         unchecked.append("characters: the second reader failed (" + errs["oxr"] + "); the text is the primary reading as is")
-    else:
+        # the checks against the text layer do not need a second reading and still run (11-02, PTA-12: OXR failed
+        # on the main paper and dropped content, broken sentences and tables were then not checked at all)
+        issues.append({"kind": "second reader failed", "detail": errs["oxr"], "why": "characters not compared with a "
+                       "second reading; the checks against the text layer ran"})
+    oxp = OX.pages(odir) if oxr_ok else None
+    if oxr_ok:
         dollars = TR.settle_dollars(mdir, odir, out / "checks" / "dollars")
         stats, subs, unread = TR.compare(mdir, odir)
-        lb_subs, unread = UR.linebreak_subs(pdf, mdir, unread)     # split words the alignment left unpaired
-        subs += lb_subs
-        if source:                                                 # split words both readers spell alike
-            subs += LB.source_splits(pdf, mdir, subs, source)
-        layer_pages = set(MR.pages(mdir)) - set(prof["pages_without_text_layer"])
-        om = OM.find(pdf, mdir, odir)
-        subs = [s for s in subs if not any(OM.overlaps(o, s) for o in om)] + om
-        subs = RS.settle(pdf, subs, out / "checks", source)
-        md, edits, open_items = RP.apply(md0, MR.pages(mdir), subs)
-        # text-layer content the primary dropped or changed, judged by jev and written back (check/dropped.py)
-        found = DR.judge(DR.find(pdf, mdir, out / "checks" / "dropped", md), out / "checks" / "dropped")
-        md, dedits, dissues, dcount = DR.apply(md, MR.pages(mdir), found,
-                                               OX.pages(odir))
-        edits += dedits
-        issues += dissues
-        (out / "checks" / "dropped.json").write_text(json.dumps(found, ensure_ascii=False, indent=1))
-        checks["dropped"] = {**dcount, "summary": f"{len(found)} places where the text layer has characters the primary lacks: "
-                              f"jev reads the layer's form on the page at {dcount.get('printed', 0)} "
-                              f"({dcount.get('written', 0)} written, {dcount.get('formulas retyped from the layer', 0)} of them "
-                              f"inline formulas the primary misread, retyped from the layer), not at "
-                              f"{dcount.get('not printed', 0)} (the layer is wrong there), "
-                              f"{dcount.get('undecided', 0)} undecided"}
-        # sentences a page or column break cuts, with floats between the halves (check/reflow.py)
-        found_r = RF.judge(RF.find(mdir, md), out / "checks" / "reflow")
-        md, redits, rissues, rcount = RF.apply(md, found_r)
-        edits += redits
-        issues += rissues
-        (out / "checks" / "reflow.json").write_text(json.dumps(found_r, ensure_ascii=False, indent=1, default=dict))
-        checks["reflow"] = {**rcount, "summary": f"{len(found_r)} paragraphs end mid-sentence before the next text block: "
-                             f"{rcount.get('joined', 0)} joined with their continuation ({rcount.get('floats moved', 0)} "
-                             f"with figures, tables or footnotes moved after the paragraph); {rcount.get('new', 0)} not continued by "
-                             f"the next block ({rcount.get('next block starts a new sentence', 0)} of them because it starts a "
-                             f"new sentence: a heading or author line typed as text), {rcount.get('undecided', 0)} undecided; "
-                             f"{len(rissues)} open issues"}
-        # tables against the text layer, cell by cell (check/table_layer.py)
-        found_t = TL.judge(pdf, TL.find(pdf, mdir, layer_pages), out / "checks" / "tables", OX.pages(odir))
-        md, tedits, tissues, tcount = TL.apply(md, mdir, found_t)
-        edits += tedits
-        issues += tissues
-        (out / "checks" / "table_layer.json").write_text(json.dumps(found_t, ensure_ascii=False, indent=1, default=str))
-        checks["tables"] = {**tcount, "summary": f"{len(found_t)} tables checked against the text layer cell by cell: "
-                            f"{tcount.get('look-alike characters', 0)} look-alike characters and "
-                            f"{tcount.get('spaces between glued words', 0)} spaces between a cell's glued lines written from the "
-                            f"layer, {sum(v for k, v in tcount.items() if k.startswith('cells rewritten'))} cells rewritten "
-                            f"(OXR or jev settled the layer's reading); {tcount.get('tables equal the layer (after fixes)', 0)} "
-                            f"tables equal the layer, {tcount.get('tables with open cells', 0)} with open cells"}
-        # text only the primary read: jev on the layer-placed words (check/unread.py)
-        runs_u, uissues, ucount = UR.check(pdf, mdir, unread, layer_pages, out / "checks" / "unread")
-        issues += uissues
-        (out / "checks" / "unread.json").write_text(json.dumps(runs_u, ensure_ascii=False, indent=1))
-        checks["unread"] = {**ucount, "found_elsewhere_in_oxr": stats["found_elsewhere_in_oxr"],
-                            "summary": f"{stats['found_elsewhere_in_oxr']} primary tokens OXR read elsewhere on the page "
-                                       f"(another order or a table); {ucount.get('tokens', 0)} tokens with letters or "
-                                       f"digits in {ucount.get('runs', 0)} runs OXR did not read: jev reads them in the "
-                                       f"page at {ucount.get('printed', 0)} runs ({ucount.get('tokens printed', 0)} tokens), "
-                                       f"reads something else at {ucount.get('not printed', 0)}, undecided "
-                                       f"{ucount.get('undecided', 0)}; {ucount.get('printed in the figure', 0)} "
-                                       f"found by jev in the figure they caption (the figure is a picture); not placed by the text "
-                                       f"layer {ucount.get('not placed by the text layer', 0)}, on pages without a layer "
-                                       f"{ucount.get('page without a text layer', 0)} (those jev does not confirm, the "
-                                       f"undecided and the unplaced are open issues with their crops)"}
-        acc = RP.accept(md0, md, edits)
-        if not acc["passed"]:          # an edit changed more than it declared: keep the unrepaired text
-            issues.append({"kind": "repair rejected by acceptance", "detail": acc})
-            md, edits = md0, []
-        (out / "checks" / "disagreements.json").write_text(json.dumps(subs, ensure_ascii=False, indent=1))
-        (out / "checks" / "edits.json").write_text(json.dumps(edits, ensure_ascii=False, indent=1))
-        groups = substitution_groups(subs)
-        (out / "checks" / "substitutions.json").write_text(json.dumps(groups, ensure_ascii=False, indent=1))
-        issues += [{"kind": "disagreement", **x} for x in open_items]
-        cnt = lambda pred: sum(1 for s in subs if pred(s))
-        lb = [s for s in subs if s.get("route") == "line-break hyphen"]
-        ch = [s for s in subs if s.get("route") == "characters"]
-        verdicts = {}
-        for s in ch:
-            verdicts[s.get("verdict")] = verdicts.get(s.get("verdict"), 0) + 1
-        checks["characters"] = {
-            "compared": {"pages": stats["pages"], "primary_tokens": stats["tokens"], "agreeing_tokens": stats["equal"],
-                         "only_in_primary": stats["only_primary"], "only_in_oxr": stats["only_oxr"]},
-            "disagreements_by_kind": dict(collections.Counter(s["kind"] for s in subs)),
-            "disagreements": {"form only (spacing, markup, OXR flattening, reading order)": cnt(lambda s: s["route"] == "form only"),
-                              "line-break hyphen": len(lb), "characters": len(ch)},
-            "line_break": {"by document usage": cnt(lambda s: s.get("by") == "document usage"),
-                           "by jev spelling": cnt(lambda s: s.get("by") == "jev spelling"),
-                           "primary was wrong": cnt(lambda s: s in lb and s.get("plan") == "edit")},
-            "characters_verdicts": verdicts,
-            "edits_written": len(edits), "left_open": len(open_items), "acceptance": acc,
-            "substitutions_most_repeated": [f"{g['layer']!r}->{g['oxr']!r} x{g['count']}" for g in groups[:8]],
-            "summary": f"{stats['equal']}/{stats['tokens']} primary tokens agree with OXR; {len(edits)} corrections written "
-                       f"({cnt(lambda s: s in lb and s.get('plan') == 'edit')} line-break spellings), {len(open_items)} left "
-                       f"open; acceptance {'passed' if acc['passed'] else 'FAILED'}; "
-                       f"{sum(1 for s in subs if s.get('crop_checked') is False)} of "
-                       f"{sum(1 for s in subs if 'crop_checked' in s)} passages for the page judges had no crop jev "
-                       f"found to show them whole (not judged, open)"}
-        if source:
-            lbn = cnt(lambda s: s.get("route") == "line-break hyphen" and s.get("by") == "source document")
-            chn = cnt(lambda s: s.get("route") == "characters" and s.get("by", "").startswith("source document"))
-            found = cnt(lambda s: s.get("source", "").endswith("the source document the other way"))
-            against = cnt(lambda s: s.get("source_says") and not s.get("by", "").startswith("source document"))
-            checks["source"] = {"files": source.names, "line-break words spelled": lbn,
-                                "of them both readers spelled alike": found, "letter differences settled": chn,
-                                "the text layer holds the other reading": against,
-                                "summary": f"source document {', '.join(source.names)}: spelled {lbn} line-break words "
-                                           f"({found} of them both readers had spelled alike), settled {chn} differences "
-                                           f"of letters or digits; at {against} the text layer holds the other reading "
-                                           f"(judged on the page as without a source)"}
-        unchecked += ["page headers, footers and page numbers: checked against the text layer only (coverage); a "
-                      "broken layer there is not caught (OXR output has no headers or footers)",
-                      ]
+    else:
+        stats, subs, unread = dict.fromkeys(("pages", "tokens", "equal", "only_primary", "only_oxr",
+                                             "found_elsewhere_in_oxr"), 0), [], []
+    lb_subs, unread = UR.linebreak_subs(pdf, mdir, unread)     # split words the alignment left unpaired
+    subs += lb_subs
+    subs += LB.agreed_splits(pdf, mdir, subs, source)          # split words both readers spell alike
+    layer_pages = set(MR.pages(mdir)) - set(prof["pages_without_text_layer"])
+    om = OM.find(pdf, mdir, odir) if oxr_ok else []
+    subs = [s for s in subs if not any(OM.overlaps(o, s) for o in om)] + om
+    subs = RS.settle(pdf, subs, out / "checks", source)
+    md, edits, open_items = RP.apply(md0, MR.pages(mdir), subs)
+    # text-layer content the primary dropped or changed, judged by jev and written back (check/dropped.py)
+    found = DR.judge(DR.find(pdf, mdir, out / "checks" / "dropped", md), out / "checks" / "dropped")
+    md, dedits, dissues, dcount = DR.apply(md, MR.pages(mdir), found,
+                                           oxp)
+    edits += dedits
+    issues += dissues
+    (out / "checks" / "dropped.json").write_text(json.dumps(found, ensure_ascii=False, indent=1))
+    checks["dropped"] = {**dcount, "summary": f"{len(found)} places where the text layer has characters the primary lacks: "
+                          f"jev reads the layer's form on the page at {dcount.get('printed', 0)} "
+                          f"({dcount.get('written', 0)} written, {dcount.get('formulas retyped from the layer', 0)} of them "
+                          f"inline formulas the primary misread, retyped from the layer), not at "
+                          f"{dcount.get('not printed', 0)} (the layer is wrong there), "
+                          f"{dcount.get('undecided', 0)} undecided"}
+    # sentences a page or column break cuts, with floats between the halves (check/reflow.py)
+    found_r = RF.judge(RF.find(mdir, md), out / "checks" / "reflow")
+    md, redits, rissues, rcount = RF.apply(md, found_r)
+    edits += redits
+    issues += rissues
+    (out / "checks" / "reflow.json").write_text(json.dumps(found_r, ensure_ascii=False, indent=1, default=dict))
+    checks["reflow"] = {**rcount, "summary": f"{len(found_r)} paragraphs end mid-sentence before the next text block: "
+                         f"{rcount.get('joined', 0)} joined with their continuation ({rcount.get('floats moved', 0)} "
+                         f"with figures, tables or footnotes moved after the paragraph); {rcount.get('new', 0)} not continued by "
+                         f"the next block ({rcount.get('next block starts a new sentence', 0)} of them because it starts a "
+                         f"new sentence: a heading or author line typed as text), {rcount.get('undecided', 0)} undecided; "
+                         f"{len(rissues)} open issues"}
+    # tables against the text layer, cell by cell (check/table_layer.py)
+    found_t = TL.judge(pdf, TL.find(pdf, mdir, layer_pages), out / "checks" / "tables", oxp)
+    md, tedits, tissues, tcount = TL.apply(md, mdir, found_t)
+    edits += tedits
+    issues += tissues
+    (out / "checks" / "table_layer.json").write_text(json.dumps(found_t, ensure_ascii=False, indent=1, default=str))
+    checks["tables"] = {**tcount, "summary": f"{len(found_t)} tables checked against the text layer cell by cell: "
+                        f"{tcount.get('look-alike characters', 0)} look-alike characters and "
+                        f"{tcount.get('spaces between glued words', 0)} spaces between a cell's glued lines written from the "
+                        f"layer, {sum(v for k, v in tcount.items() if k.startswith('cells rewritten'))} cells rewritten "
+                        f"(OXR or jev settled the layer's reading); {tcount.get('tables equal the layer (after fixes)', 0)} "
+                        f"tables equal the layer, {tcount.get('tables with open cells', 0)} with open cells"}
+    # text only the primary read: jev on the layer-placed words (check/unread.py)
+    runs_u, uissues, ucount = UR.check(pdf, mdir, unread, layer_pages, out / "checks" / "unread")
+    issues += uissues
+    (out / "checks" / "unread.json").write_text(json.dumps(runs_u, ensure_ascii=False, indent=1))
+    checks["unread"] = {**ucount, "found_elsewhere_in_oxr": stats["found_elsewhere_in_oxr"],
+                        "summary": f"{stats['found_elsewhere_in_oxr']} primary tokens OXR read elsewhere on the page "
+                                   f"(another order or a table); {ucount.get('tokens', 0)} tokens with letters or "
+                                   f"digits in {ucount.get('runs', 0)} runs OXR did not read: jev reads them in the "
+                                   f"page at {ucount.get('printed', 0)} runs ({ucount.get('tokens printed', 0)} tokens), "
+                                   f"reads something else at {ucount.get('not printed', 0)}, undecided "
+                                   f"{ucount.get('undecided', 0)}; {ucount.get('printed in the figure', 0)} "
+                                   f"found by jev in the figure they caption (the figure is a picture); not placed by the text "
+                                   f"layer {ucount.get('not placed by the text layer', 0)}, on pages without a layer "
+                                   f"{ucount.get('page without a text layer', 0)} (those jev does not confirm, the "
+                                   f"undecided and the unplaced are open issues with their crops)"}
+    acc = RP.accept(md0, md, edits)
+    if not acc["passed"]:          # an edit changed more than it declared: keep the unrepaired text
+        issues.append({"kind": "repair rejected by acceptance", "detail": acc})
+        md, edits = md0, []
+    (out / "checks" / "disagreements.json").write_text(json.dumps(subs, ensure_ascii=False, indent=1))
+    (out / "checks" / "edits.json").write_text(json.dumps(edits, ensure_ascii=False, indent=1))
+    groups = substitution_groups(subs)
+    (out / "checks" / "substitutions.json").write_text(json.dumps(groups, ensure_ascii=False, indent=1))
+    issues += [{"kind": "disagreement", **x} for x in open_items]
+    cnt = lambda pred: sum(1 for s in subs if pred(s))
+    lb = [s for s in subs if s.get("route") == "line-break hyphen"]
+    ch = [s for s in subs if s.get("route") == "characters"]
+    verdicts = {}
+    for s in ch:
+        verdicts[s.get("verdict")] = verdicts.get(s.get("verdict"), 0) + 1
+    checks["characters"] = {
+        "compared": {"pages": stats["pages"], "primary_tokens": stats["tokens"], "agreeing_tokens": stats["equal"],
+                     "only_in_primary": stats["only_primary"], "only_in_oxr": stats["only_oxr"]},
+        "disagreements_by_kind": dict(collections.Counter(s["kind"] for s in subs)),
+        "disagreements": {"form only (spacing, markup, OXR flattening, reading order)": cnt(lambda s: s["route"] == "form only"),
+                          "line-break hyphen": len(lb), "characters": len(ch)},
+        "line_break": {"by document usage": cnt(lambda s: s.get("by") == "document usage"),
+                       "by jev spelling": cnt(lambda s: s.get("by") == "jev spelling"),
+                       "primary was wrong": cnt(lambda s: s in lb and s.get("plan") == "edit")},
+        "characters_verdicts": verdicts,
+        "edits_written": len(edits), "left_open": len(open_items), "acceptance": acc,
+        "substitutions_most_repeated": [f"{g['layer']!r}->{g['oxr']!r} x{g['count']}" for g in groups[:8]],
+        "summary": f"{stats['equal']}/{stats['tokens']} primary tokens agree with OXR; {len(edits)} corrections written "
+                   f"({cnt(lambda s: s in lb and s.get('plan') == 'edit')} line-break spellings), {len(open_items)} left "
+                   f"open; acceptance {'passed' if acc['passed'] else 'FAILED'}; "
+                   f"{sum(1 for s in subs if s.get('crop_checked') is False)} of "
+                   f"{sum(1 for s in subs if 'crop_checked' in s)} passages for the page judges had no crop jev "
+                   f"found to show them whole (not judged, open)"}
+    if source:
+        lbn = cnt(lambda s: s.get("route") == "line-break hyphen" and s.get("by") == "source document")
+        chn = cnt(lambda s: s.get("route") == "characters" and s.get("by", "").startswith("source document"))
+        found = cnt(lambda s: s.get("source", "").endswith("the source document the other way"))
+        against = cnt(lambda s: s.get("source_says") and not s.get("by", "").startswith("source document"))
+        checks["source"] = {"files": source.names, "line-break words spelled": lbn,
+                            "of them both readers spelled alike": found, "letter differences settled": chn,
+                            "the text layer holds the other reading": against,
+                            "summary": f"source document {', '.join(source.names)}: spelled {lbn} line-break words "
+                                       f"({found} of them both readers had spelled alike), settled {chn} differences "
+                                       f"of letters or digits; at {against} the text layer holds the other reading "
+                                       f"(judged on the page as without a source)"}
+    if not oxr_ok:
+        checks["characters"]["summary"] = "not compared (the second reader failed); " + checks["characters"]["summary"]
+    unchecked += ["page headers, footers and page numbers: checked against the text layer only (coverage); a "
+                  "broken layer there is not caught (OXR output has no headers or footers)",
+                  ]
+    if oxr_ok:                            # tables without a layer and equations: against OXR's reading
         checks["tables_without_layer"], ti = _tables(pdf, mdir, odir, out, {(t["page"], t["block"]) for t in found_t})
         checks["equations"], ei = _equations(pdf, mdir, odir, layer_pages)
         issues += ti + ei
@@ -420,7 +431,7 @@ def _parse(pdf, out, src, source=None):
     (out / "full.md").write_text(md)
     checks["sections"] = {"sections": SC.write(pdf, md, mdir, out),
                           "summary": "sections.json and quote_index.json in the pdf_parser schema"}
-    pc = PS.write(pdf, mdir, md, out)
+    pc = PS.write(pdf, mdir, md, out, src)
     n = pc["text characters"] or 1
     checks["positions"] = {**pc, "summary": (
         f"positions.json: of {pc['text characters']} characters of full.md (markup left out), "
@@ -441,7 +452,8 @@ def _parse(pdf, out, src, source=None):
         "scope": {"pages": prof["n_pages"], "pages_without_text_layer": prof["pages_without_text_layer"],
                   "blocks_by_type": types},
         "readers": dict(sorted({**metas, **{k: {"failed": v} for k, v in errs.items()}}.items(), key=lambda kv: kv[0] != "mineru")),
-        "figures": {"transcriptions": len(figs), "moved_out_of_text": sum(f["in_markdown"] for f in figs),
+        "figures": {"figures": len(figs), "transcriptions": sum(f["transcribed"] for f in figs),
+                    "moved_out_of_text": sum(f["in_markdown"] for f in figs),
                     "tokens": sum(f["tokens"] for f in figs), "tokens_printed": sum(f["tokens_printed"] for f in figs),
                     "figures_without_text_layer": sum(f["text_layer_words_in_box"] == 0 for f in figs)},
         "checks": checks, "backends": backend_report(), "calibration": CALIBRATION, "open_issues": len(issues),
@@ -478,7 +490,8 @@ def render(r):
              f"{s['pages']} pages" + (f"; no text layer on pages {s['pages_without_text_layer']}"
                                       if s["pages_without_text_layer"] else "; every page has a text layer") + ".",
              "Readers: " + ", ".join(f"{k}" + (" (FAILED)" if "failed" in v else "") for k, v in r["readers"].items()) + ".",
-             f"Figure transcriptions: {fg['transcriptions']} (figures.json), {fg['moved_out_of_text']} moved out of full.md; "
+             f"Figures: {fg.get('figures', fg['transcriptions'])} (figures.json), {fg['transcriptions']} with a transcription "
+             f"by the reader, {fg['moved_out_of_text']} moved out of full.md; "
              f"{fg['tokens_printed']}/{fg['tokens']} of their tokens are printed in the figure's text layer, the rest is the "
              f"reader's reading of the graphic and unverified; {fg['figures_without_text_layer']} figures have no text layer.", ""]
     if r["checks"]:

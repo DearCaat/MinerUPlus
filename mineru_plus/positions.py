@@ -244,8 +244,11 @@ def build(pdf_path, mdir, md):
             "counts": counts, "spans": spans}
 
 
-def write(pdf_path, mdir, md, out):
+def write(pdf_path, mdir, md, out, input_path=None):
+    """input_path: the PDF as the caller gave it, recorded for --crop (the run reads a temporary copy; 11-02: the
+    recorded copy was gone when a caller drew a quote's boxes)"""
     pos = build(pdf_path, mdir, md)
+    pos["pdf"] = str(input_path or pdf_path)
     (Path(out) / "positions.json").write_text(json.dumps(pos, ensure_ascii=False, separators=(",", ":")))
     return pos["counts"]
 
@@ -289,11 +292,14 @@ def find(out_dir, quote):
     return {"start": start, "end": end, "pages": lines(sp), "sources": sorted({s["source"] for s in sp}), "spans": sp}
 
 
-def crop(out_dir, hit, path, dpi=150):
-    """the first page of a hit with its boxes in red, saved to path"""
+def crop(out_dir, hit, path, dpi=150, pdf=None):
+    """the first page of a hit with its boxes in red, saved to path; pdf: the PDF if not where positions.json says"""
     pos = json.loads((Path(out_dir) / "positions.json").read_text())
     page = hit["spans"][0]["page"]
-    pg = pymupdf.open(pos["pdf"])[page - 1]
+    pdf = pdf or pos["pdf"]
+    if not Path(pdf).is_file():
+        raise FileNotFoundError(f"{pdf}: not found; pass the PDF with --pdf")
+    pg = pymupdf.open(pdf)[page - 1]
     rects = [pymupdf.Rect(b) for b in hit["pages"][page]]
     u = pymupdf.Rect(rects[0])
     for r in rects[1:]:
@@ -310,12 +316,16 @@ def main(argv=None):
     ap.add_argument("out_dir", help="a mineru_plus output directory (full.md and positions.json)")
     ap.add_argument("quote", help="text copied from full.md; spaces and line breaks are not compared")
     ap.add_argument("--crop", metavar="PNG", help="save the page region with the boxes in red")
+    ap.add_argument("--pdf", metavar="PATH", help="the parsed PDF, if it is no longer where positions.json says")
     a = ap.parse_args(argv)
     hit = find(a.out_dir, a.quote)
     if not hit:
         sys.exit("not in full.md")
     if a.crop and hit["spans"]:
-        crop(a.out_dir, hit, a.crop)
+        try:
+            crop(a.out_dir, hit, a.crop, pdf=a.pdf)
+        except FileNotFoundError as e:
+            sys.exit(str(e))
     print(json.dumps({k: hit[k] for k in ("start", "end", "pages", "sources")}, ensure_ascii=False, indent=1))
 
 

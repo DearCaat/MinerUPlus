@@ -153,7 +153,7 @@ One PDF in, one directory out:
 | `sections.json` | sections with title, level (from the heading's numbering) and page range |
 | `quote_index.json` | per-section text and whitespace-normalised text, for verbatim quote checks |
 | `positions.json` | where each stretch of `full.md` is printed in the PDF: character offsets → page and one box per printed line, word by word where the text layer has the words |
-| `figures.json` | figure and chart transcriptions, with how much of each is printed text and how much is the reader's estimate |
+| `figures.json` | every figure and chart the reader found, with its image; where the reader transcribed it, the transcription and how much of it is printed text and how much the reader's estimate |
 | `checks/` | every disagreement with its route, verdict and source; `edits.json`; judge requests and crops |
 | `readers/` | the untouched output of both readers |
 
@@ -337,6 +337,9 @@ a hyphen at the line end either way, so neither the text layer nor a judge can t
 that differ in Latin letters or digits the authors wrote, taken only where the text layer does not print the other
 reading. It also finds split words both readers spelled alike against the source, which no disagreement brings up.
 Nothing is downloaded; without `--source` the run is as before. `report.md` says what the source settled.
+The source need not be the same version as the PDF, but a line-break spelling follows the source only where the
+PDF's own mid-line usage of the word does not say otherwise; where the two disagree (an author manuscript against
+the publisher's PDF) neither is taken and the place is an open issue.
 On 15 documents with a source (7 arXiv HTML, 8 JATS), compared with runs without it: 19 line-break spellings
 changed to the source's (`under-represented`, `down-regulation`, `pretrained`), 1 formula letter corrected that the
 judge had confirmed wrongly, 9 open disagreements settled where the page prints a typo or the judges were undecided;

@@ -57,9 +57,10 @@ def blocks(out_dir):
 
 
 def figure_bodies(out_dir):
-    """What the reader declares as the body of a figure or chart (middle_json image_body / chart_body) and the
-    text it generated for it: a transcription of the graphic (mermaid, chart values), not running text. A reader
-    that writes no middle_json.json declares none."""
+    """What the reader declares as the body of a figure or chart (middle_json image_body / chart_body), each with the
+    text it generated for it, if any: a transcription of the graphic (mermaid, chart values), not running text
+    ('transcribed' False where there is none; 11-02: figures without one were left out, and figures.json missed
+    images full.md shows). A reader that writes no middle_json.json declares none."""
     path = Path(out_dir) / "middle_json.json"
     if not path.exists():
         return []
@@ -68,9 +69,10 @@ def figure_bodies(out_dir):
 
     def walk(o, page):
         if isinstance(o, dict):
-            if o.get("type") in ("image_body", "chart_body") and isinstance(o.get("content"), str) and o["content"].strip():
+            text = o.get("content") if isinstance(o.get("content"), str) else ""
+            if o.get("type") in ("image_body", "chart_body") and (text.strip() or o.get("image_path")):
                 res.append({"page": page, "type": o["type"], "bbox": o.get("bbox"),
-                            "image_path": o.get("image_path"), "text": o["content"]})
+                            "image_path": o.get("image_path"), "text": text, "transcribed": bool(text.strip())})
             for v in o.values():
                 walk(v, page)
         elif isinstance(o, list):

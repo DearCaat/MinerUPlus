@@ -40,7 +40,26 @@ def _locate(text, s):
     return None
 
 
+def _respace(text, target):
+    """text with the spacing of target, where both print the same characters apart from spaces; else None"""
+    if re.sub(r"\s", "", text) != re.sub(r"\s", "", target):
+        return None
+    out, j = [], 0
+    for c in text:
+        if c.isspace():
+            continue
+        if j < len(target) and target[j].isspace():
+            out.append(" ")
+            while j < len(target) and target[j].isspace():
+                j += 1
+        out.append(c)
+        j += 1
+    return "".join(out)
+
+
 def _new_span(span_text, s):
+    if s["route"] == "spacing":
+        return _respace(span_text, s["oxr"])
     if s["route"] == "omission":         # the dropped run goes between the two anchor tokens, as the layer prints it
         m1 = re.compile(re.escape(s["primary_toks"][0])).search(span_text)
         m2 = re.compile(re.escape(s["primary_toks"][1])).search(span_text, m1.end())
@@ -76,6 +95,8 @@ def plan(s):
     v = s.get("verdict")
     if s["route"] == "form only":
         return "keep"
+    if s["route"] == "spacing":
+        return "edit" if v == "oxr" else "keep"
     if s["route"] == "omission":
         return "edit"
     if s["route"] == "line-break hyphen":
@@ -157,6 +178,9 @@ def apply(md, pages, subs):
                            "primary": s["primary"], "oxr": s["oxr"], "context": s["context"]}); continue
         old = block[span[0]:span[1]]
         new = _new_span(old, s)
+        if new is None:
+            issues.append({"id": s["id"], "page": s["page"], "why": "passage holds markup between the words",
+                           "primary": s["primary"], "oxr": s["oxr"], "context": s["context"]}); continue
         nb = block[:span[0]] + new + block[span[1]:]
         md = md.replace(block, nb, 1)
         cur[key] = nb

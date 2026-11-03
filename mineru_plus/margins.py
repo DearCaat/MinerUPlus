@@ -32,10 +32,15 @@ def _same_words(lay, text):
     return norm(w for w in lay if w.strip()) == norm(mine)
 
 
+def _alnum(text):
+    return "".join(c.lower() for c, _ in DR.plain_map(text) if c.isalnum())
+
+
 def add(pdf, mdir, md, no_layer_pages=()):
     pdf = pymupdf.open(pdf) if not isinstance(pdf, pymupdf.Document) else pdf
     pages = MR.pages(mdir)
     flat = WS.sub(" ", md)
+    md_alnum = _alnum(md)
     lines, issues, stats = [], [], collections.Counter()
     for pg in sorted(pages):
         for bi, b in pages[pg]:
@@ -45,7 +50,10 @@ def add(pdf, mdir, md, no_layer_pages=()):
             if not text:
                 continue
             stats[b["type"]] += 1
-            if _in(flat, text):
+            # the running text may hold the block in other markup (11-02, PTA-09: the affiliation footnote of page 1 in
+            # the body with a link, written again as a footer); a short margin text (a page number, a journal name)
+            # is compared as it stands
+            if _in(flat, text) or len(text.split()) >= 4 and _alnum(text) in md_alnum:
                 stats["already in text"] += 1
                 continue
             stats["written"] += 1
@@ -61,6 +69,10 @@ def add(pdf, mdir, md, no_layer_pages=()):
             if len(lc) < 0.5 * len(bc):               # little or nothing on the layer there: a logo or badge drawn as an image
                                             # (10-29: the CellPress logo holds only 'll' in its box)
                 stats["read from an image (little or no layer text in its box)"] += 1
+                # written as read and reported: a badge's reading can be broken (11-02: 'heck k for' for the
+                # 'Check for updates' badge)
+                issues.append({"kind": "margin text read from an image, not checked", "page": pg, "block": bi,
+                               "type": b["type"], "text": text, "layer": " ".join(lay)[:500]})
                 continue
             if lc == bc or _same_words(lay, text):
                 stats["equal to the text layer"] += 1

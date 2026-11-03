@@ -44,9 +44,9 @@ def test_line_break_word_both_readers_join_against_the_source(tmp_path):
     (mdir / "structured_content.json").write_text(json.dumps(
         {"pages": [{"page_idx": 0, "blocks": [{"type": "text", "content": md, "bbox": [0, 0, 1, 1]}]}]}))
     src = SRC.Source("The labels were hand-written by two staff, and the model is computationally cheap.")
-    subs = LB.source_splits(str(pdf), mdir, [], src)
+    subs = LB.agreed_splits(str(pdf), mdir, [], src)
     assert [(x["primary"], x["oxr"], x["raw_span"]) for x in subs] == [("handwritten", "hand-written", [16, 27])]
-    assert LB.source_splits(str(pdf), mdir, [], SRC.Source("The labels were handwritten by two staff")) == []
+    assert LB.agreed_splits(str(pdf), mdir, [], SRC.Source("The labels were handwritten by two staff")) == []
 
 
 def test_source_is_asked_about_latin_words_only():

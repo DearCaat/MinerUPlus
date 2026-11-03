@@ -144,10 +144,33 @@ def _drops_letters(s, short="oxr", long="primary"):
     """OXR's letters and digits are a proper subsequence of the primary's (or short's of long's)"""
     a = [c for c in s[long] if c.isalnum()]
     b = [c for c in s[short] if c.isalnum()]
-    if len(b) >= len(a):
+    # a side with no letter or digit lacks nothing, it reads other characters (11-02, PTA-07: OXR's '=' and '+'
+    # against a layer whose font maps them to '1⁄4' and 'þ'; the layer was taken for the page)
+    if not b or len(b) >= len(a):
         return False
     it = iter(a)
     return all(c in it for c in b)
+
+
+_PAGE_WORDS = {}
+
+
+def _layer_spacing_says(pg, s):
+    """'oxr' where OXR's words are all words of the page's layer and the primary's are not"""
+    key = (pg.parent.name, pg.number)
+    if key not in _PAGE_WORDS:
+        _PAGE_WORDS[key] = {LB.EDGE.sub("", unicodedata.normalize("NFKC", w[4])) for w in LY.words(pg)}
+    ws = _PAGE_WORDS[key]
+    a = [t for t in (LB.EDGE.sub("", x) for x in unicodedata.normalize("NFKC", s["primary"]).split()) if t]
+    b = [t for t in (LB.EDGE.sub("", x) for x in unicodedata.normalize("NFKC", s["oxr"]).split()) if t]
+    # words of letters only: spacing around punctuation and superscript numbers is markup's ('Shulman,<sup>1,26</sup>'
+    # read 'Shulman , 1,26'), not a word the reader cut
+    if not (a and b and all(t.isalpha() for t in a + b)):
+        return None
+    # OXR cutting a word into a letter and the rest ('f low' for a layer's 'ﬂow') is OXR's error, not the primary's
+    if len(b) >= len(a) and any(len(t) == 1 for t in b):
+        return None
+    return "oxr" if all(t in ws for t in b) and not all(t in ws for t in a) else None
 
 
 def _latin(c):
@@ -188,6 +211,16 @@ def settle(pdf, subs, work, src=None):
             else:
                 s["route"], s["verdict"], s["by"] = "form only", "no action", "look-alikes the text layer does not decide"
             continue
+        if s["kind"] == "spacing":
+            # spacing the primary made up: OXR's words are words of the page's text layer and a piece of the primary's
+            # is not (11-02, PTA-05: MinerU 4.1.2 wrote 'confidence i nterval', 'occu rri ng i n', 'C I' where the
+            # layer has the words whole; words it glued, 'patientsUCMC'). A layer that splits words itself
+            # (letter-spaced fonts) holds the pieces, and nothing is decided
+            if _layer_spacing_says(LY.page(doc, s["page"] - 1), s) == "oxr":
+                s["route"], s["verdict"], s["by"] = "spacing", "oxr", "text layer (word spacing)"
+            else:
+                s["route"], s["verdict"] = "form only", "no action"
+            continue
         if s["kind"] != "content":
             s["route"], s["verdict"] = "form only", "no action"
             continue
@@ -204,13 +237,20 @@ def settle(pdf, subs, work, src=None):
         if hit:
             left, right, full = hit
             s["route"], s["split"] = "line-break hyphen", f"{left}-|{right}"
-            v = src.hyphen(s["left"], s["primary"], s["oxr"], s.get("right", [])) if src else None
-            if v is not None:
-                s["verdict"] = "hyphen" if any(c in s[("primary", "oxr")[v]] for c in LB.HY) else "joined"
-                s["by"] = "source document"
-                continue
             u = LB.usage(full, right, usage_idx)
             s["usage"] = u
+            v = src.hyphen(s["left"], s["primary"], s["oxr"], s.get("right", [])) if src else None
+            if v is not None:
+                sv = "hyphen" if any(c in s[("primary", "oxr")[v]] for c in LB.HY) else "joined"
+                uv = "hyphen" if u["hyphen"] and not u["joined"] else "joined" if u["joined"] and not u["hyphen"] else None
+                # a source of another version than the page (11-02, PTA-04: the author manuscript writes
+                # 'over-expression', the publisher's page prints 'overexpression' mid-line): where the page's own
+                # usage says otherwise, neither is taken and the item goes to the caller
+                if uv and uv != sv:
+                    s["verdict"], s["by"] = "undecided", "source document against the document's usage"
+                else:
+                    s["verdict"], s["by"] = sv, "source document"
+                continue
             if u["hyphen"] and not u["joined"]:
                 s["verdict"], s["by"] = "hyphen", "document usage"
             elif u["joined"] and not u["hyphen"]:

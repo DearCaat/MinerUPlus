@@ -25,7 +25,8 @@ from . import tables as TB, jev, dropped as DR
 LOOKALIKE = ["-–—−‐‑", "✓✔√", "×✗✘✕Xx", ".·•", "*∗", "~∼", "'’′"]
 CLS = {ch: k for k, s in enumerate(LOOKALIKE) for ch in s}
 TD = re.compile(r"<tr[^>]*>|<(td|th)([^>]*)>(.*?)</\1>", re.S)
-PLAIN = re.compile(r"^[^$\\<>&]*$")          # a cell whose characters are its text (no LaTeX, tags, entities)
+PLAIN = re.compile(r"^[^$\\<>&]*$")
+ENTITY = re.compile(r"&(?:[A-Za-z]+|#\d+|#x[0-9A-Fa-f]+);")          # a cell whose characters are its text (no LaTeX, tags, entities)
 
 
 def lookalike(a, b):
@@ -80,6 +81,15 @@ def cell_chars(cell):
     t = cell["text"]
     if PLAIN.match(t):
         return [(ch, i) for i, ch in enumerate(t) if not ch.isspace()]
+    if PLAIN.match(ENTITY.sub("", t)):
+        # an entity is one printed character and is not edited; the characters around it keep their positions
+        # (11-02, dcis table 4: '&lt;0.0001' left with MinerU's period while the page prints '<0·0001')
+        out, at = [], 0
+        for m in ENTITY.finditer(t):
+            out += [(ch, at + i) for i, ch in enumerate(t[at:m.start()]) if not ch.isspace()]
+            out += [(ch, None) for ch in html.unescape(m.group()) if not ch.isspace()]
+            at = m.end()
+        return out + [(ch, at + i) for i, ch in enumerate(t[at:]) if not ch.isspace()]
     return [(ch, None) for ch in _nf("".join(TB.cell_toks(re.sub(r"<[^>]+>", " ", t))))]
 
 

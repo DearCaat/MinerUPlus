@@ -4,11 +4,39 @@ page's words here, keyed by file and page number (each check opens the PDF itsel
 centre lies inside the rectangle."""
 _cache = {}
 
+# list bullets and check marks of symbol fonts that carry no Unicode map: the layer has the font's code in the private
+# use area (U+F000 + code), which every check drops as unprintable (11-02, PTA-05 mmc3: Wingdings 'l' for the bullets
+# of a list, 59 bullets and check marks in 5 supplements missing from the parse with no finding). Only codes whose
+# glyph is a bullet, box or check mark in that font are mapped; any other stays as it is.
+DINGBATS = {"wingdings": {0x6C: "●", 0x6E: "■", 0x6F: "□", 0x71: "❑", 0x75: "◆", 0x76: "❖", 0xA7: "▪", 0xD8: "➢",
+                          0xFB: "✗", 0xFC: "✓", 0xFD: "☒", 0xFE: "☑"},
+            "symbol": {0xB7: "•"}}
+
+
+def _dingbats(page):
+    """{private-use character: its glyph} for the symbol-font characters of the page"""
+    m = {}
+    for b in page.get_text("rawdict")["blocks"]:
+        for ln in b.get("lines", []):
+            for sp in ln["spans"]:
+                fam = next((k for k in DINGBATS if k in sp["font"].lower()), None)
+                for c in sp["chars"] if fam else ():
+                    o = ord(c["c"]) - 0xF000
+                    if o in DINGBATS[fam]:
+                        m[c["c"]] = DINGBATS[fam][o]
+    return m
+
 
 def words(page, clip=None):
     key = (page.parent.name, page.number)
     if key not in _cache:
-        _cache[key] = tuple(page.get_text("words"))
+        ws = page.get_text("words")
+        if any("\uf000" <= ch <= "\uf0ff" for w in ws for ch in w[4]):
+            m = _dingbats(page)
+            if m:
+                tr = str.maketrans(m)
+                ws = [(*w[:4], w[4].translate(tr), *w[5:]) for w in ws]
+        _cache[key] = tuple(ws)
     ws = _cache[key]
     if clip is None:
         return list(ws)
