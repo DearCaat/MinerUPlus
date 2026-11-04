@@ -29,10 +29,31 @@ def _dingbats(page):
     return m
 
 
+def _unseen(page, tp):
+    """rectangles of white text that the page renders as nothing: its box is blank white. The layer has such text,
+    the reader cannot see it (11-03, Nature-family main texts: '1234567890():,;' in white at the left edge of page 1,
+    a text-layer issue in 5 documents). White text on a dark ground is seen and stays; so does the invisible text of
+    a scan's OCR layer, which is not white."""
+    out = []
+    for b in page.get_text("dict", textpage=tp)["blocks"]:
+        for ln in b.get("lines", []):
+            for sp in ln["spans"]:
+                if sp["color"] != 0xFFFFFF or not sp["text"].strip():
+                    continue
+                r = pymupdf.Rect(sp["bbox"]) & page.rect
+                if r.is_empty or min(page.get_pixmap(clip=r, dpi=72, alpha=False).samples) >= 250:
+                    out.append(pymupdf.Rect(sp["bbox"]))
+    return out
+
+
 def words(page, clip=None):
     key = (page.parent.name, page.number)
     if key not in _cache:
-        ws = page.get_text("words")
+        tp = page.get_textpage(flags=pymupdf.TEXTFLAGS_WORDS)   # the flags of get_text("words"): unmapped glyphs by CID
+        ws = page.get_text("words", textpage=tp)
+        unseen = _unseen(page, tp)
+        if unseen:
+            ws = [w for w in ws if not any(pymupdf.Point((w[0] + w[2]) / 2, (w[1] + w[3]) / 2) in r for r in unseen)]
         if any("\uf000" <= ch <= "\uf0ff" for w in ws for ch in w[4]):
             m = _dingbats(page)
             if m:

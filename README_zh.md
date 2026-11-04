@@ -236,6 +236,8 @@ MinerUPlus 不是识别模型，它调用读取器（MinerU），再核对读取
 
 配置文件里不写密钥：`api_key_env` 填的是存放密钥的环境变量名。查找顺序：`--config PATH`，其次 `$MINERU_PLUS_CONFIG`，再次是当前目录下的 `./mineru_plus.json`，最后是 `~/.config/mineru_plus/config.json`。没配第二读取器也能跑完，报告会写明字符没有核对。
 
+两个判定器都可以跨运行保留答案：在其条目里加 `"cache": "~/.cache/mineru_plus"`。文字、图片、模型都相同的问题再问时，按第一次的答案作答；重跑一篇文档时，只有新版检查问法不同的地方会变，也只问判定器这些。
+
 ## 用法
 
 ```bash

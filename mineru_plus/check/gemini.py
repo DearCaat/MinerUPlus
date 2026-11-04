@@ -17,6 +17,7 @@ import pymupdf
 from PIL import Image, ImageDraw, ImageFont
 from .. import backends
 from .. import layer as LY
+from . import judge_cache as JC
 
 PER_SHEET = 8
 INSTR = ("Each strip is labelled #N on a yellow band; strips are separated by red lines. For each item, two programs "
@@ -362,6 +363,7 @@ def judge(pdf, items, work, placed):
     sheets = _sheets([crops[it["id"]] for it in items], work / "crops")
     res, usage = {}, {}
     page = backends.get("page_judge")
+    cache = JC.directory("page_judge")
 
     def ask(order):
         lines = []
@@ -371,7 +373,14 @@ def judge(pdf, items, work, placed):
             lines.append(f"#{n}:\n  A: {L} [[ {a} ]] {R}\n  B: {L} [[ {b} ]] {R}")
         body = (INSTR + "\n\nItems:\n" + "\n".join(lines) +
                 '\n\nAnswer with JSON only, one key per item: {"1": "A" | "B" | "neither", ...}')
+        k = JC.key(page.info(), body, [JC.file_hash(x) for x in sheets])
+        hit = JC.get(cache, k)
+        if hit is not None:
+            res[order] = hit["answer"], hit.get("usage"), None
+            return
         res[order] = page.session(body, sheets, work)
+        if res[order][0] is not None:
+            JC.put(cache, k, {"answer": res[order][0], "usage": res[order][1]})
     th = [threading.Thread(target=ask, args=(o,)) for o in ("a", "b")]
     [t.start() for t in th]; [t.join() for t in th]
     out = {}

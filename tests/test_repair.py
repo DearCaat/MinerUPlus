@@ -477,3 +477,59 @@ def test_a_link_target_whose_text_holds_brackets_is_not_printed():
     raw = 'arXiv \\[cs.CV\\] (2023).](http://paperpile.com/b/zJE8P4/TibRC)\n4. [Ding, J.](http://x.y/z) LongNet'
     assert TR.printed_toks(raw)[0] == 'arXiv [cs.CV] (2023).\n4. Ding, J. LongNet'
     assert 'paperpile' not in TR.toks(raw)
+
+
+def test_a_table_with_no_layer_that_oxr_reads_alike_is_no_issue(tmp_path, monkeypatch):
+    import pymupdf
+    from mineru_plus import run as RUN
+    doc = pymupdf.open(); doc.new_page(); pdf = tmp_path / "t.pdf"; doc.save(pdf)
+    alike = {"page": 1, "block": 0, "bbox": [0.1, 0.1, 0.5, 0.5], "layer": None,
+             "oxr": {"diffs": [], "rows": [3, 3], "cols": [2, 2]}}
+    differs = dict(alike, block=1, oxr={"diffs": [{"what": "cell", "mineru": "0.7–0.8", "oxr": "0.7-0.8"}],
+                                        "rows": [3, 3], "cols": [2, 2]})
+    unmatched = dict(alike, block=2, oxr=None)
+    monkeypatch.setattr(RUN.TB, "check", lambda pdf, mdir, odir: [alike, differs, unmatched])
+    stats, issues = RUN._tables(str(pdf), tmp_path, tmp_path, tmp_path, set())
+    assert [i["block"] for i in issues] == [1, 2]
+    assert stats["no_layer_read_alike"] == 1 and stats["structure_equal_oxr"] == 1
+
+
+def test_a_judge_answer_is_kept_across_runs_where_the_config_names_a_cache(tmp_path, monkeypatch):
+    import json
+    from mineru_plus.check import jev, gemini, judge_cache as JC
+    asked = []
+
+    class Judge:
+        model = "m"
+
+        def run(self, fin, fout):
+            have = {json.loads(l)["id"] for l in open(fout)} if fout.exists() else set()
+            with open(fout, "a") as f:
+                for l in open(fin):
+                    x = json.loads(l)
+                    if x["id"] not in have:
+                        asked.append(x["id"])
+                        p = 0.51 if x["id"].endswith("|a") else 0.49      # a coin flip: 'a' in both orders
+                        f.write(json.dumps({"id": x["id"], "ok": True, "answers": {"which": {"probabilities": {
+                            "first": p, "second": 1 - p}}}}) + "\n")
+    monkeypatch.setattr(jev.backends, "get", lambda role: Judge())
+    monkeypatch.setattr(JC, "directory", lambda role: tmp_path / "cache" / role)
+    q = [{"id": "q1", "state": "s", "instructions": "i", "options": {"a": "A", "b": "B"}}]
+    assert jev.ask(q, tmp_path / "run1", "t") == {"q1": "a"} and len(asked) == 2
+    assert jev.ask(q, tmp_path / "run2", "t") == {"q1": "a"} and len(asked) == 2     # a new run asks nothing
+    assert jev.ask([dict(q[0], state="s2")], tmp_path / "run3", "t") == {"q1": "a"} and len(asked) == 4
+    monkeypatch.setattr(JC, "directory", lambda role: None)
+    assert jev.ask(q, tmp_path / "run4", "t") == {"q1": "a"} and len(asked) == 6      # no cache configured
+
+
+def test_white_text_the_page_does_not_show_is_not_in_the_layer(tmp_path):
+    import pymupdf
+    from mineru_plus import layer as LY
+    doc = pymupdf.open(); pg = doc.new_page()
+    pg.insert_text((72, 100), "Visible words", fontsize=11)
+    pg.insert_text((5, 300), "1234567890():,;", fontsize=5, color=(1, 1, 1))
+    pg.draw_rect(pymupdf.Rect(72, 190, 200, 215), color=(0, 0, 0), fill=(0, 0, 0))
+    pg.insert_text((80, 205), "200um", fontsize=11, color=(1, 1, 1))
+    p = tmp_path / "w.pdf"; doc.save(p)
+    got = [w[4] for w in LY.words(pymupdf.open(p)[0])]
+    assert got == ["Visible", "words", "200um"]

@@ -300,6 +300,10 @@ found via `--config PATH`, else `$MINERU_PLUS_CONFIG`, else `./mineru_plus.json`
 `~/.config/mineru_plus/config.json`. A run without a second reader
 still completes, and its report says the characters were not checked.
 
+Either judge may keep its answers across runs: add `"cache": "~/.cache/mineru_plus"` to its entry. A question asked
+again with the same text, images and model is then answered as the first time, so rerunning a document changes only
+what a new version of the checks asks differently, and asks the judges only that.
+
 ## Usage
 
 ```bash

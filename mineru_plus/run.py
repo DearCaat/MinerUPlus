@@ -184,13 +184,19 @@ def _tables(pdf, mdir, odir, out, done):
     res = [t for t in TB.check(pdf, mdir, odir) if (t["page"], t["block"]) not in done]
     doc = pymupdf.open(pdf)
     (out / "checks" / "crops").mkdir(parents=True, exist_ok=True)
-    issues, chars_ok, struct_ok = [], 0, 0
+    issues, chars_ok, struct_ok, alike = [], 0, 0, 0
     for t in res:
         L, O = t["layer"], t["oxr"]
         bad_chars = bool(L and L["chars_mineru_not_on_layer"])
         bad_struct = bool(O and O["diffs"])
         chars_ok += bool(L) and not bad_chars
         struct_ok += bool(O) and not bad_struct
+        # a table with no layer words that OXR reads cell for cell alike is settled as prose on such a page is, by
+        # the two readings, and counted as such; it was an issue for having no layer (11-03, PTA-12 supplements:
+        # 24 such tables, every cell checked against the page by L1-3, none wrong)
+        if L is None and O and not bad_struct:
+            alike += 1
+            continue
         if not (bad_chars or bad_struct or L is None or O is None):
             continue
         pg = LY.page(doc, t["page"] - 1); W, H = pg.rect.width, pg.rect.height; b = t["bbox"]
@@ -202,9 +208,10 @@ def _tables(pdf, mdir, odir, out, done):
                        "structure_vs_oxr": (O["diffs"][:40] if O else "no OXR table matched"),
                        "shape_mineru_oxr": ({"rows": O["rows"], "cols": O["cols"]} if O else None)})
     (out / "checks" / "tables_oxr.json").write_text(json.dumps(res, ensure_ascii=False, indent=1))
-    return ({"tables": len(res), "structure_equal_oxr": struct_ok,
+    return ({"tables": len(res), "structure_equal_oxr": struct_ok, "no_layer_read_alike": alike,
              "summary": f"{len(res)} tables without text-layer words in their box: rows and cells equal OXR in "
-                        f"{struct_ok}; the rest are open issues with a crop"}, issues)
+                        f"{struct_ok} ({alike} with no layer in the box, settled by the two readings alone); "
+                        f"the rest are open issues with a crop"}, issues)
 
 
 def _equations(pdf, mdir, odir, layer_pages):
