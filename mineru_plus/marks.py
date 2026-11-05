@@ -109,7 +109,15 @@ def into_cells(md, found):
                 if not at or not col:
                     continue
                 k = at[0]
-                heads = [h for h in range(len(head)) if h < len(cells) and head[h] == col and h != k]
+                if k < len(head) and head[k] == col:
+                    # the box and its label share the cell under the heading ('Involved in the study' with the
+                    # box before 'Clinical data', 11-05 PTA-11 MOESM4): the mark goes before the label, as printed
+                    if not cells[k].startswith(MARK):
+                        cells[k] = MARK + " " + cells[k]
+                        placed.add(fi)
+                        changed = True
+                    continue
+                heads = [h for h in range(len(head)) if h < len(cells) and head[h] == col]
                 if not heads:
                     continue
                 h = min(heads, key=lambda h: (abs(h - k), h > k))

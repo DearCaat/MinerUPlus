@@ -560,10 +560,11 @@ def test_check_box_marks_go_into_the_cells_of_a_table_the_parse_holds():
           "Confirmed list\n")
     found = [{"page": 3, "column": "n/a", "row": "Antibodies"}, {"page": 3, "column": "n/a", "row": "ChIP-seq"},
              {"page": 3, "column": "n/a", "row": "Flow cytometry"},
+             {"page": 3, "column": "Involved in the study", "row": "Clinical data"},
              {"page": 1, "column": "Confirmed", "row": "The exact sample size (n) for each"}]
     out = MK.add(md, found)
     assert "| ✘ | Antibodies | ✘ | ChIP-seq |" in out
     assert "|  | Plants | ✘ | Flow cytometry |" in out
-    assert "|  | Clinical data |  |  |" in out
+    assert "|  | ✘ Clinical data |  |  |" in out
     assert "## Check-box marks" in out and "- p1, Confirmed: The exact sample size (n) for each" in out
     assert "- p3, n/a: Antibodies" in out          # the section stays, a cross-check of the cells
