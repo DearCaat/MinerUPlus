@@ -12,7 +12,7 @@
   out/issues.json             what the run could not settle, for the calling agent
   out/report.json, report.md  the quality statement of this run
 """
-import argparse, collections, difflib, json, re, shutil, sys, tempfile, time, threading
+import argparse, collections, difflib, json, re, shutil, subprocess, sys, tempfile, time, threading
 import pymupdf
 from pathlib import Path
 from . import profile as PR, repair as RP, margins as MG, positions as PS, marks as MK
@@ -515,7 +515,7 @@ def _parse(pdf, out, src, source=None):
     for b in blocks:
         types[b["type"]] = types.get(b["type"], 0) + 1
     report = {
-        "tool": "mineru_plus", "version": VERSION, "input": str(src), "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "tool": "mineru_plus", "version": VERSION, "commit": _commit(), "input": str(src), "time": time.strftime("%Y-%m-%d %H:%M:%S"),
         "wall_s": round(time.time() - t0, 1),
         "scope": {"pages": prof["n_pages"], "pages_without_text_layer": prof["pages_without_text_layer"],
                   "blocks_by_type": types},
@@ -528,6 +528,22 @@ def _parse(pdf, out, src, source=None):
     (out / "report.json").write_text(json.dumps(report, indent=1, ensure_ascii=False))
     (out / "report.md").write_text(render(report))
     return report
+
+
+def _commit():
+    """the git commit the code runs from, '+dirty' with uncommitted changes; None outside a checkout. A rerun is
+    traced to its code by this, not by the package version, which changes only with releases (11-05: 13 of the paper
+    line's 26 parses could not be traced to a commit)"""
+    root = Path(__file__).resolve().parent.parent
+    try:
+        h = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, timeout=10)
+        if h.returncode:
+            return None
+        d = subprocess.run(["git", "status", "--porcelain", "--untracked-files=no"], cwd=root, capture_output=True,
+                           text=True, timeout=10)
+        return h.stdout.strip() + ("+dirty" if d.stdout.strip() else "")
+    except (OSError, subprocess.SubprocessError):
+        return None
 
 
 def backend_report():
