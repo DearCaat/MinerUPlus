@@ -533,3 +533,20 @@ def test_white_text_the_page_does_not_show_is_not_in_the_layer(tmp_path):
     p = tmp_path / "w.pdf"; doc.save(p)
     got = [w[4] for w in LY.words(pymupdf.open(p)[0])]
     assert got == ["Visible", "words", "200um"]
+
+
+def test_punctuation_the_parse_doubles_is_settled_by_the_layer(tmp_path):
+    import pymupdf
+    from mineru_plus.check import punct as PU
+    doc = pymupdf.open(); pg = doc.new_page()
+    pg.insert_text((72, 100), "Haemek (N=156), and TCGA (N=492).", fontsize=11)
+    pg.insert_text((72, 130), "for any of the following reasons: : 1) The patient", fontsize=11)
+    p = tmp_path / "p.pdf"; doc.save(p)
+    md = ("Haemek $( N { = } 156 ) ,$ , and TCGA (N=492). Reasons: : 1) The patient. "
+          "Then (p < 0.001;; Figures 3B). Also $x ,$ , Kang et al.")
+    found = PU.judge(str(p), PU.find(md))
+    assert [f["verdict"] for f in found] == ["once", "twice", "not in the layer", "not in the layer"]
+    out, edits, issues, count = PU.apply(md, found)
+    assert out.startswith("Haemek $( N { = } 156 )$ , and TCGA") and "reasons: : 1)" in out.lower()
+    assert len(edits) == 1 and edits[0]["old"] == " ,$ ," and edits[0]["new"] == "$ ,"
+    assert len(issues) == 2 and count == {"once": 1, "twice": 1, "not in the layer": 2}

@@ -19,7 +19,7 @@ from . import profile as PR, repair as RP, margins as MG, positions as PS, marks
 from .readers import mineru as MR, oxr as OX
 from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL, omissions as OM, two_readings as TR, resolve as RS, coverage as CV, tables as TB, equations as EQ
 from . import layer as LY, sections as SC, backends, config, source as SRC
-from .check import linebreak as LB, respace as RSP
+from .check import linebreak as LB, respace as RSP, punct as PU
 
 VERSION = "0.5.6"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
@@ -377,6 +377,15 @@ def _parse(pdf, out, src, source=None):
                         f"layer, {sum(v for k, v in tcount.items() if k.startswith('cells rewritten'))} cells rewritten "
                         f"(OXR or jev settled the layer's reading); {tcount.get('tables equal the layer (after fixes)', 0)} "
                         f"tables equal the layer, {tcount.get('tables with open cells', 0)} with open cells"}
+    # a punctuation mark the parse has twice, the page once (check/punct.py)
+    found_p = PU.judge(pdf, PU.find(md))
+    md, pedits, pissues, pcount = PU.apply(md, found_p)
+    edits += pedits
+    issues += pissues
+    checks["punctuation"] = {**pcount, "summary": f"{len(found_p)} places where the parse has a punctuation mark twice "
+                             f"(around a formula or in prose): {pcount['once']} printed once by the text layer, the "
+                             f"copy deleted; {pcount['twice']} printed twice, kept; {pcount['not in the layer']} not "
+                             f"found in the layer, open issues"}
     # text only the primary read: jev on the layer-placed words (check/unread.py)
     # check-box marks drawn as images (marks.py): the 'x' a reader kept for some of them is that mark, written whole in
     # the closing section, not text only the primary read
