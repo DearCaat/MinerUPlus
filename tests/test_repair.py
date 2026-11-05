@@ -550,3 +550,20 @@ def test_punctuation_the_parse_doubles_is_settled_by_the_layer(tmp_path):
     assert out.startswith("Haemek $( N { = } 156 )$ , and TCGA") and "reasons: : 1)" in out.lower()
     assert len(edits) == 1 and edits[0]["old"] == " ,$ ," and edits[0]["new"] == "$ ,"
     assert len(issues) == 2 and count == {"once": 1, "twice": 1, "not in the layer": 2}
+
+
+def test_check_box_marks_go_into_the_cells_of_a_table_the_parse_holds():
+    from mineru_plus import marks as MK
+    md = ("Materials & experimental systems\n\n"
+          "| n/a | Involved in the study | n/a | Involved in the study |\n| --- | --- | --- | --- |\n"
+          "|  | Antibodies |  | ChIP-seq |\n|  | Plants | x | Flow cytometry |\n|  | Clinical data |  |  |\n\n"
+          "Confirmed list\n")
+    found = [{"page": 3, "column": "n/a", "row": "Antibodies"}, {"page": 3, "column": "n/a", "row": "ChIP-seq"},
+             {"page": 3, "column": "n/a", "row": "Flow cytometry"},
+             {"page": 1, "column": "Confirmed", "row": "The exact sample size (n) for each"}]
+    out = MK.add(md, found)
+    assert "| ✘ | Antibodies | ✘ | ChIP-seq |" in out
+    assert "|  | Plants | ✘ | Flow cytometry |" in out
+    assert "|  | Clinical data |  |  |" in out
+    assert "## Check-box marks" in out and "- p1, Confirmed: The exact sample size (n) for each" in out
+    assert "- p3, n/a: Antibodies" in out          # the section stays, a cross-check of the cells

@@ -68,8 +68,64 @@ def find(pdf):
     return found
 
 
+MARK = "✘"
+KEPT = ("x", "X", "×", "✘", "✗")         # a reader's own reading of the mark
+
+
+def _key(t):
+    return "".join(c.lower() for c in t if c.isalnum())
+
+
+def _cells(line):
+    return [c.strip() for c in line.strip().strip("|").split("|")]
+
+
+def into_cells(md, found):
+    """each mark into its cell where the parse has the form as a table: the row whose cell starts like the mark's row,
+    the column under the mark's heading nearest that cell (11-05, 文浩: an empty cell where the page has a mark is
+    wrong; PTA-09 MOESM3 p3: the n/a column of 'Materials & experimental systems' was empty in every row).
+    Returns the text and the marks placed."""
+    lines = md.split("\n")
+    placed = set()
+    i = 0
+    while i < len(lines):
+        if not lines[i].lstrip().startswith("|"):
+            i += 1
+            continue
+        j = i
+        while j < len(lines) and lines[j].lstrip().startswith("|"):
+            j += 1
+        head = [_key(c) for c in _cells(lines[i])]
+        for n in range(i + 1, j):
+            cells = _cells(lines[n])
+            if all(set(c) <= set("-: ") for c in cells):
+                continue
+            changed = False
+            for fi, f in enumerate(found):
+                if fi in placed:
+                    continue
+                row, col = _key(f["row"]), _key(f["column"] or "")
+                at = [k for k, c in enumerate(cells) if len(_key(c)) >= 3 and (row.startswith(_key(c)) or _key(c).startswith(row))]
+                if not at or not col:
+                    continue
+                k = at[0]
+                heads = [h for h in range(len(head)) if h < len(cells) and head[h] == col and h != k]
+                if not heads:
+                    continue
+                h = min(heads, key=lambda h: (abs(h - k), h > k))
+                if cells[h] in ("",) + KEPT:
+                    cells[h] = MARK
+                    placed.add(fi)
+                    changed = True
+            if changed:
+                lines[n] = "| " + " | ".join(cells) + " |"
+        i = j
+    return "\n".join(lines), placed
+
+
 def add(md, found):
     if not found:
         return md
+    md, _ = into_cells(md, found)
     lines = [f"- p{f['page']}, {f['column'] or 'marked'}: {f['row']}" for f in found]
     return md.rstrip("\n") + "\n\n## Check-box marks\n\n" + "\n".join(lines) + "\n"
