@@ -568,3 +568,15 @@ def test_check_box_marks_go_into_the_cells_of_a_table_the_parse_holds():
     assert "|  | ✘ Clinical data |  |  |" in out
     assert "## Check-box marks" in out and "- p1, Confirmed: The exact sample size (n) for each" in out
     assert "- p3, n/a: Antibodies" in out          # the section stays, a cross-check of the cells
+
+
+def test_cache_directory_chosen_by_caller(tmp_path, monkeypatch):
+    from mineru_plus.check import judge_cache as JC
+    monkeypatch.setenv("MINERU_PLUS_CACHE", str(tmp_path / "env"))
+    assert JC.directory("decision_judge") == tmp_path / "env" / "decision_judge"
+    JC.use(str(tmp_path / "opt"))
+    try:
+        assert JC.directory("page_judge") == tmp_path / "opt" / "page_judge"
+    finally:
+        JC.use(None)
+    monkeypatch.delenv("MINERU_PLUS_CACHE")

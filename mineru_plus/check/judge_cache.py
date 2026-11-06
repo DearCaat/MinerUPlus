@@ -2,18 +2,31 @@
 answered as it was the first time. A rerun of a document then changes only where the questions changed (11-03: two
 full runs of the same 26 documents differed on 9 of them; jev answered 4 of 3,986 identical questions otherwise, all
 with no option above 0.6, and Gemini gave other letters for the same sheets and items in 6 of the 9, which sent the
-L1-3 executors new issues after every rerun; 文浩 11-04 chose this cache). Kept only where the role's config entry has
-"cache": a directory; one file per answer, named by the hash of what was asked."""
+L1-3 executors new issues after every rerun; 文浩 11-04 chose this cache). The directory is the caller's: --cache DIR,
+else $MINERU_PLUS_CACHE, else the role's config entry "cache"; without any of them nothing is kept. One file per
+answer, named by the hash of what was asked, under DIR/<role>/. An answer never goes out of date (the key holds the
+model, the question and the images), so the caller keeps the directory as long as it likes and may delete it at any
+time; a rerun after that asks again."""
 import hashlib, json, os, threading
 from pathlib import Path
 from .. import config
 
+ENV = "MINERU_PLUS_CACHE"
+_chosen = None          # the --cache option of this run
+
+
+def use(d):
+    global _chosen
+    _chosen = d
+
 
 def directory(role):
-    try:
-        d = config.role(role).get("cache")
-    except config.ConfigError:
-        return None
+    d = _chosen or os.environ.get(ENV)
+    if not d:
+        try:
+            d = config.role(role).get("cache")
+        except config.ConfigError:
+            return None
     return Path(d).expanduser() / role if d else None
 
 

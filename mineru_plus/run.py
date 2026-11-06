@@ -19,7 +19,7 @@ from . import profile as PR, repair as RP, margins as MG, positions as PS, marks
 from .readers import mineru as MR, oxr as OX
 from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL, omissions as OM, two_readings as TR, resolve as RS, coverage as CV, tables as TB, equations as EQ
 from . import layer as LY, sections as SC, backends, config, source as SRC
-from .check import linebreak as LB, respace as RSP, punct as PU
+from .check import linebreak as LB, respace as RSP, punct as PU, judge_cache as JC
 
 VERSION = "0.5.6"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
@@ -605,9 +605,13 @@ def main(argv=None):
                     help="the source is the same version as the PDF (the publisher's XML or HTML for the publisher's "
                          "PDF): its spelling of a line-break word stands where the PDF's mid-line usage differs; "
                          "without it such a place is an open issue")
+    ap.add_argument("--cache", metavar="DIR",
+                    help="keep the judges' answers in DIR across runs, so a rerun asks only what changed (default: "
+                         "$MINERU_PLUS_CACHE, else the judge's \"cache\" entry in the config, else nothing is kept)")
     ap.add_argument("pdf", help="the PDF to parse")
     ap.add_argument("out_dir", help="the output directory")
     a = ap.parse_args(argv)
+    JC.use(a.cache)
     try:
         config.load(a.config)
         for role in REQUIRED_ROLES:          # fail before any work, naming the role and the config file
