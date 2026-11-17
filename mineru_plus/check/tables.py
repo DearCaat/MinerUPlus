@@ -29,6 +29,24 @@ def cell_toks(s):
     return [t for t in toks(s) if not PURE_MARKUP.fullmatch(t)]
 
 
+def _span(v):
+    """a rowspan or colspan value as an int: its leading digits, else 1 (a broken attribute does not stop the check)"""
+    m = re.match(r"\s*(\d+)", v or "")
+    return max(1, int(m[1])) if m else 1
+
+
+# A span value whose digits run into a tag before any closing quote: the reader dropped the '">' that ends the start
+# tag (an attribute value cannot hold a tag). 11-17, PTA-565 mmc4/mmc5: OXR wrote '<td colspan="5{...}</td>', and
+# html.parser took the rest of the table as the attribute value.
+UNCLOSED_SPAN = re.compile(r'(\b(?:col|row)span=")(\d+)(?=[^"<>]*<)')
+
+
+def second_reading(content):
+    """OXR table HTML with unclosed span attributes closed. Only for the second reading: the primary reading is what the
+    parse writes, so a broken table there is left for the check to find."""
+    return UNCLOSED_SPAN.sub(r'\1\2">', content or "")
+
+
 class _Grid(HTMLParser):
     def __init__(self):
         super().__init__(); self.rows, self.cell, self.span = [], None, (1, 1)
@@ -40,7 +58,7 @@ class _Grid(HTMLParser):
         elif tag in ("td", "th"):
             if not self.rows:
                 self.rows.append([])
-            self.cell, self.span = [], (int(a.get("rowspan") or 1), int(a.get("colspan") or 1))
+            self.cell, self.span = [], (_span(a.get("rowspan")), _span(a.get("colspan")))
 
     def handle_endtag(self, tag):
         if tag in ("td", "th") and self.cell is not None:
@@ -135,7 +153,7 @@ def check(pdf_path, primary_dir, oxr_dir):
     A, B = MR.pages(primary_dir), OX.pages(oxr_dir)
     res = []
     for pg in sorted(A):
-        otabs = [b for b in B.get(pg, []) if b["type"] == "Table"]
+        otabs = [dict(b, content=second_reading(b.get("content"))) for b in B.get(pg, []) if b["type"] == "Table"]
         for bi, b in A[pg]:
             if b["type"] != "table":
                 continue
