@@ -13,7 +13,7 @@ the layer's form, in both option orders. 10-29, 101 findings on 9 papers labelle
   not printed  the layer is wrong there (a font that maps '.' to ':' or '=' to '1⁄4', radical glyphs): nothing to do.
   undecided    an open issue with its crop.
 """
-import base64, collections, difflib, hashlib, html, re, unicodedata
+import base64, collections, difflib, hashlib, html, re, string, unicodedata
 from pathlib import Path
 import pymupdf
 from ..readers import mineru as MR
@@ -33,9 +33,20 @@ INSTR = ("The image is a crop of a printed page; a thin red box marks some text.
 SPACING_ACCENTS = set("ˆ˜¯˙¨ˇ˘´`^")
 
 
+# characters drawn alike for one content: a norm's double bar as '‖' or as two bars ('∣∣' in a layer, '| |' in a
+# reading), the increment sign for Delta, the dot operator for the middle dot (11-17, the paper line's L1-3 of 16
+# rounds: 17 issues where the parse had the content in another encoding, 12 of them these and the '\|' below)
+LOOKALIKE = str.maketrans({"‖": "||", "∆": "Δ", "⋅": "·"})
+
+
 def _norm_char(c):
-    s = unicodedata.normalize("NFKD", c.translate(TR.VARIANT)).translate(DASH)
+    s = unicodedata.normalize("NFKD", c.translate(TR.VARIANT).translate(LOOKALIKE)).translate(DASH)
     return [x for x in s if x not in SPACING_ACCENTS and not x.isspace() and not "" <= x <= "" and not unicodedata.combining(x)]
+
+
+# symbols a formula prints that the comparison tables leave out: '\|' is a double bar inside a formula (an escaped
+# bar outside one), and a radical prints its sign
+MATH_EXTRA = {"\\lVert": "‖", "\\rVert": "‖", "\\vert": "|", "\\lvert": "|", "\\rvert": "|", "\\sqrt": "√"}
 
 
 # LaTeX accents and the spacing accent a text layer prints for each (used to keep accents out of retyped text)
@@ -60,13 +71,16 @@ def plain_map(raw):
             nx = raw[i + 1]
             if nx.isalpha():
                 m = re.match(r"\\[A-Za-z]+", raw[i:])
-                sym = TR.LATEX.get(m.group(0))
+                sym = TR.LATEX.get(m.group(0)) or (MATH_EXTRA.get(m.group(0)) if math else None)
                 if sym is None and math and m.group(0)[1:] in TR.FUNCS:
                     sym = m.group(0)[1:]                 # \log prints 'log'
                 if sym:
                     out += [(x, i) for x in _norm_char(sym)]
                 i += len(m.group(0)); continue
             if math and nx in ",;:! ":
+                i += 2; continue
+            if math and nx == "|":
+                out += [(x, i) for x in _norm_char("‖")]
                 i += 2; continue
             out += [(x, i + 1) for x in _norm_char(nx)]
             i += 2; continue
@@ -254,6 +268,20 @@ def locate(md, raw):
     return cur if ok and cur.count("\n") == raw.count("\n") and md.count(cur) == 1 else None
 
 
+def _moved(ops, L, P, n, near=4):
+    """the layer characters of op n are in the parse within near characters, where the alignment has parse characters
+    the layer lacks: the same characters in another order, not a drop. A formula's sub- and superscripts stacked on
+    one base are listed in one order by the layer and in another by the reading (11-17, the paper line's L1-3 of 16
+    rounds: of 30 one-letter 'drops' found in the parse in another order, 23 were this, x_i^ctx in a layer as
+    'x ctx i'; of the issues they edited by, 3 had a wrong accent near the letter, not the letter)"""
+    _, i1, i2, _, _ = ops[n]
+    lost = "".join(c for c, _ in L[i1:i2])
+    for m, (op, a1, a2, b1, b2) in enumerate(ops):
+        if m != n and op in ("insert", "replace") and lost and lost in "".join(P[b1:b2]) and max(0, a1 - i2, i1 - a2) <= near:
+            return True
+    return False
+
+
 def find(pdf_path, mdir, work, md=None):
     """localised findings: [{id, page, uid, layer (words), lay, prim, ops, bbox, crop}]. With md, each block is
     compared as it now stands in full.md (earlier routes' edits included); blocks not found there once are skipped."""
@@ -393,7 +421,7 @@ def find(pdf_path, mdir, work, md=None):
                               "located": located, "replaces": "".join(P[j1:j2]),
                               "raw_after": before, "raw_next": after_next, "raw_span": span, "placeable": ctx_ok,
                               "superscript": _superscript(pg, box), "bbox": list(box), "crop": str(crop),
-                              "retype": retype})
+                              "retype": retype, "moved": _moved(ops, L, P, n)})
     return found
 
 
@@ -503,6 +531,9 @@ def _doubled(layer, prim):
     return pairs >= 2 and out == b
 
 
+ASCII_PUNCT = set(string.punctuation)
+
+
 def apply(md, pages, found, second=None, work=None):
     """write the printed findings into full.md, right to left within a block, on the block as it now stands in
     full.md (the text find() compared); returns (md, edits, issues, counts).
@@ -517,6 +548,21 @@ def apply(md, pages, found, second=None, work=None):
         if pg not in seen:
             seen[pg] = "".join(c for c, _ in plain_map(" ".join(b.get("content") or "" for b in second.get(pg, []))))
         return lay in seen[pg]
+    def not_a_drop(f):
+        """why the layer's characters here are not content the parse lacks, or None"""
+        if f.get("moved"):
+            return "not raised: in the parse a few characters away, in another order"
+        # a font that maps glyphs to ASCII punctuation ('𝑥!' for x_i, '𝑅*#%' for R^512 in a Cambria Math subset):
+        # the layer has punctuation where the reading has letters or digits, drawn unlike them, and the second reading
+        # of the page has not the layer's form either (11-17, the paper line's L1-3: 24 such issues on one supplement,
+        # none edited by). ASCII punctuation only: a symbol the readings take for a letter can be what is printed
+        # (PTA-716, PTA-724: '⊮' printed where both readings have '1', edited by)
+        ins, rep = f.get("insert") or "", f.get("replaces") or ""
+        if f["raw_span"] is not None and ins and rep and all(c in ASCII_PUNCT for c in ins) and all(c.isalnum() for c in rep) \
+                and TR.skeleton(ins) != TR.skeleton(rep) and second is not None and f["page"] in second \
+                and not second_has(f["page"], f["lay"]):
+            return "not raised: the layer's punctuation where both readings have letters or digits (a font map)"
+        return None
     by_block, unplaced = collections.defaultdict(list), []
     for f in found:
         n[f["verdict"]] += 1
@@ -525,6 +571,9 @@ def apply(md, pages, found, second=None, work=None):
             # may be the order, and the words can be missing from the parse (11-03, PTA-11 MOESM1: 'with count
             # being', 'count' in neither reading where it is printed, no issue)
             n["not printed, the layer's order not the line's"] += 1
+            why = not_a_drop(f)
+            if why:
+                n[why] += 1; continue
             issues.append({"kind": "text layer not in the parse", "why": "the layer's word order is not the line's "
                            "here (jev: not printed); check by hand", "page": f["page"], "layer": f["layer_words"],
                            "parse": f["prim"], "crop": f["crop"]})
@@ -535,6 +584,9 @@ def apply(md, pages, found, second=None, work=None):
             n["layer prints each glyph twice"] += 1   # overprinted text (10-30, conic: '𝑚𝑚𝑅𝑅2,' for 'mR2,'); jev
             continue                                    # reads the print, which is the primary's
         if f["verdict"] != "printed":
+            why = not_a_drop(f)
+            if why:
+                n[why] += 1; continue
             issues.append({"kind": "text layer not in the parse", "why": f"jev {f['verdict']}", "page": f["page"],
                            "layer": f["layer_words"], "parse": f["prim"], "crop": f["crop"]}); continue
         by_block[(f["page"], f["uid"])].append(f)
@@ -582,6 +634,14 @@ def apply(md, pages, found, second=None, work=None):
             md = md.replace(raw, new, 1)
             edits += done
             n["written"] += len(done)
+    kept = []
+    for f, raw in unplaced:
+        why = not_a_drop(f)
+        if why:
+            n[why] += 1
+        else:
+            kept.append((f, raw))
+    unplaced = kept
     closed = _parse_has(unplaced, work) if work is not None else set()
     for f, raw in unplaced:
         if f["id"] in closed:

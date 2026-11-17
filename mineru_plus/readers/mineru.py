@@ -26,7 +26,7 @@ def markdown(out_dir):
 def pages(out_dir):
     """structured_content pages: {page: [(block index, block), ...]}"""
     s = json.loads((Path(out_dir) / "structured_content.json").read_text())
-    return {p["page_idx"] + 1: list(enumerate(p["blocks"])) for p in s["pages"]}
+    return {p["page_idx"] + 1: list(enumerate(p.get("blocks") or [])) for p in s["pages"]}
 
 
 def units(page_blocks):
@@ -79,5 +79,6 @@ def figure_bodies(out_dir):
             for v in o:
                 walk(v, page)
     for pg in m["pages"]:
-        walk(pg["blocks"], pg["page_idx"] + 1)
+        # a page can come with its index only (11-17, PTA-462 supplement, page 2 of the middle_json): nothing declared
+        walk(pg.get("blocks") or [], pg["page_idx"] + 1)
     return res
