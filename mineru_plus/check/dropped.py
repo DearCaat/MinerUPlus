@@ -18,7 +18,7 @@ from pathlib import Path
 import pymupdf
 from ..readers import mineru as MR
 from .. import layer as LY
-from . import coverage as CV, two_readings as TR, jev
+from . import coverage as CV, two_readings as TR, jev, gemini as G
 from .tables import cell_toks
 
 DASH = str.maketrans({"−": "-", "–": "-", "—": "-", "‐": "-", "‑": "-"})
@@ -362,12 +362,27 @@ def find(pdf_path, mdir, work, md=None):
                 for k in range(max(0, ks[0] - 3), min(len(lw), ks[-1] + 4)):
                     if abs(lw[k][1].y0 - box.y0) < 2 * box.height:
                         ctxbox |= lw[k][1]
-                clip = pymupdf.Rect(ctxbox.x0 - 10, ctxbox.y0 - 8, ctxbox.x1 + 10, ctxbox.y1 + 8) & pg.rect
-                d2 = pymupdf.open(); p2 = d2.new_page(width=clip.width, height=clip.height)
-                p2.show_pdf_page(p2.rect, pdf, pg.number, clip=clip)
-                p2.draw_rect(pymupdf.Rect(box.x0 - clip.x0 - 1.5, box.y0 - clip.y0 - 1.5, box.x1 - clip.x0 + 1.5,
-                                          box.y1 - clip.y0 + 1.5), color=(1, 0, 0), width=0.8)
-                p2.get_pixmap(dpi=220).save(str(crop))
+                clip = pymupdf.Rect(ctxbox.x0 - 10, ctxbox.y0 - 8, ctxbox.x1 + 10, ctxbox.y1 + 8)
+                if pg.rotation:
+                    # layer words are in unrotated coordinates, show_pdf_page clips in displayed ones and shows a
+                    # rotated page blank (11-17, PTA-478 MOESM1 p12, rotated 90: the clip came out empty and stopped
+                    # the parse). The box is drawn on a copy of the page and the crop rendered upright, as for the
+                    # page judge
+                    clip &= pg.rect * pg.derotation_matrix
+                    if clip.is_empty:
+                        continue                # words outside the visible page are not printed
+                    d2 = pymupdf.open(); d2.insert_pdf(pdf, from_page=pg.number, to_page=pg.number); p2 = d2[0]
+                    p2.draw_rect(box + (-1.5, -1.5, 1.5, 1.5), color=(1, 0, 0), width=0.8)
+                    G._image(p2, clip, 220).save(str(crop))
+                else:
+                    clip &= pg.rect
+                    if clip.is_empty:
+                        continue                # words outside the visible page are not printed
+                    d2 = pymupdf.open(); p2 = d2.new_page(width=clip.width, height=clip.height)
+                    p2.show_pdf_page(p2.rect, pdf, pg.number, clip=clip)
+                    p2.draw_rect(pymupdf.Rect(box.x0 - clip.x0 - 1.5, box.y0 - clip.y0 - 1.5, box.x1 - clip.x0 + 1.5,
+                                              box.y1 - clip.y0 + 1.5), color=(1, 0, 0), width=0.8)
+                    p2.get_pixmap(dpi=220).save(str(crop))
                 at_ = span[0] if span else (before + 1 if before is not None else (after_next or 0))
                 retype = _retype(pg, raw, pm, L, Lsrc, lw, ops, at_) if _in_math(raw, at_) else None
                 found.append({"id": fid, "page": pg_no, "uid": uid, "block_type": typ, "layer_words": lay_words,
