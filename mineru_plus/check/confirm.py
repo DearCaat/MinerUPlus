@@ -210,6 +210,11 @@ def items(out, pdf, issues, work, kinds=ALL_KINDS):
                 # context, found once (a block's offsets go stale when a later route edits it: PTA-123 main d0135
                 # pointed into another 'y i')
                 st = _by_context(D["md"], issue, at_md)
+                if st is None:
+                    # not found once by its context (11-18, 26 parses: 41 of 46 such 'text only' issues had their
+                    # words, 'd' or 'nature portfolio |', in several places; 23 disagreements a respelled formula's
+                    # words): what positions.json says is printed in the box, narrowed below when long
+                    st = _stretch(D, page, r * pg.rotation_matrix)
             else:
                 # what positions.json says is printed there
                 st = _stretch(D, page, r * pg.rotation_matrix)
@@ -220,7 +225,7 @@ def items(out, pdf, issues, work, kinds=ALL_KINDS):
             if b - a > (TABLE_LIMIT if issue["kind"] == "table" else LIMIT if mark is False else SHORT):
                 # a place inside a block positions.json boxes only as a whole (a page without a text layer): the
                 # issue's own words, found once in the block
-                hint = issue.get("text") or issue.get("primary") or ""
+                hint = issue.get("text") or issue.get("primary") or issue.get("parse") or ""
                 at = [m.start() for m in re.finditer(re.escape(hint), md[a:b])] if len(hint) >= 2 else []
                 if len(at) != 1:
                     break
