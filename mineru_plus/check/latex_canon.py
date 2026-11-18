@@ -55,6 +55,10 @@ DIMEN = re.compile(r"\s*-?[\d.]+\s*(pt|em|ex|mm|cm|in|mu|bp|pc|dd|cc|sp)\s*")
 OUTER = {"align", "alignat", "xalignat", "xxalignat", "flalign", "gather", "multline", "eqnarray", "equation"}
 ROW = "\\\\"                                         # a row break; input can only make it as a row break
 TAGMARK = "\x02tag:"                                 # input control characters never reach the output as such
+# after these \dots prints as \ldots (amsmath's \dotso and \dotsc; MathJax and KaTeX follow it): punctuation, a
+# closing delimiter, a column or row break. The end of a group or of the formula counts the same (amsmath looks at the
+# closing brace). Not ':': amsmath's \keybin@ counts it a relation, and \dots before it prints \cdots
+LDOTS_AFTER = {",", ".", ";", ")", "]", r"\}", r"\right", r"\rangle", r"\rbrace", ROW, "&"}
 
 
 class Invalid(Exception):
@@ -227,6 +231,12 @@ def _seq(items, text, font, st):
             out.append("^")
             out.append(("G", sup) if len(sup) > 1 else sup[0])
             continue
+        if t == r"\dots" and not text:
+            # amsmath, MathJax and KaTeX print \dots as \ldots unless a binary operator, a relation or an operator
+            # such as \sum follows; before punctuation, a closing delimiter or nothing it is \ldots for certain
+            j = _next(items, i)
+            if j >= len(items) or (isinstance(items[j], str) and items[j] in LDOTS_AFTER):
+                t = r"\ldots"
         t = ALIAS.get(t, t)
         out.append(_glyph(t, text, font))
     return _finish(out)

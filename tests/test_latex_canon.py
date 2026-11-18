@@ -5,6 +5,13 @@ from mineru_plus.check.latex_canon import canon
 
 SAME = [
     (r"a \to b", r"a\rightarrow b"),
+    # PTA-465 mmc1 p5: MinerU's token spacing and \dots before a comma or a closing brace print as the other reading
+    (r"\{a _ {1}, a _ {2}, \dots , a _ {n} \} = s o f t m a x (\{l _ {1}, \dots , l _ {n} \}),",
+     r"\{a_{1},a_{2},\ldots,a_{n}\}=softmax(\{l_{1},\ldots,l_{n}\}),"),
+    (r"x_1, x_2, \dots", r"x_1, x_2, \ldots"),
+    (r"\{1, \dots\}", r"\{1, \ldots\}"),
+    (r"(a_1 \dots)", r"(a_1 \ldots)"),
+    (r"a, \dots, b", r"a,\ldots,b"),
     (r"\gamma'^{d}", r"\gamma^ {\prime d}"),
     (r"x'", r"x^{\prime}"),
     (r"x'", r"x^\prime"),
@@ -40,6 +47,11 @@ SAME = [
 ]
 
 DIFFER = [
+    # before a binary operator or a relation \dots prints as \cdots
+    (r"a_1 + \dots + a_n", r"a_1 + \ldots + a_n"),
+    (r"x_1 = \dots = x_n", r"x_1 = \ldots = x_n"),
+    (r"\dots, a", r"\cdots, a"),
+    (r"x \dots : y", r"x \ldots : y"),
     (r"\frac{ab}{c}", r"\frac{a}{bc}"),
     (r"x^{ab}", r"x^{a}b"),
     (r"x^\mathrm{ab}", r"x^{\mathrm{a}}\mathrm{b}"),
@@ -50,7 +62,6 @@ DIFFER = [
     (r"\mathrm{x}", r"x"),
     (r"\mathrm{α}", r"α"),
     (r"\hat{x}", r"\widehat{x}"),
-    (r"a, \dots, b", r"a,\ldots,b"),
     (r"\mathcal{N}", r"\boldsymbol{N}"),
     (r"\text{pot entials}", r"\text{potentials}"),
     (r"\mathbf{x}_i", r"\mathbf{x_i}"),

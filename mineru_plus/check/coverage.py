@@ -79,7 +79,7 @@ def check(pdf_path, primary_dir, edits=()):
         parts = [(bi, t, bb, txt) for bi, b in A[pg_no] for t, bb, txt in _parts(b) if bb]
         figs = [bb for _, t, bb, _ in parts if t in FIGURE]
         text_parts = [p for p in parts if p[1] not in FIGURE]
-        got = collections.defaultdict(list); loose = []
+        got = collections.defaultdict(list); loose = []; loose_boxes = []
         for w in words:
             r = pymupdf.Rect(w[:4]) * pg.rotation_matrix
             nb = _norm_box(r, pg); c = ((nb[0] + nb[2]) / 2, (nb[1] + nb[3]) / 2)
@@ -88,7 +88,7 @@ def check(pdf_path, primary_dir, edits=()):
                 h = min(hits, key=lambda p: (p[2][2] - p[2][0]) * (p[2][3] - p[2][1]))
                 got[(h[0], h[1])].append(w[4])
             elif not any(_inside(c, f) for f in figs):
-                loose.append(w[4])
+                loose.append(w[4]); loose_boxes.append([round(x, 4) for x in nb])
         findings = []
         cmp = {}
         for (bi, t), ws in got.items():
@@ -115,7 +115,9 @@ def check(pdf_path, primary_dir, edits=()):
                 findings.append({"block": bi, "type": t, "missing_chars": n, "missing": "".join(sorted(missing.elements()))})
                 total["missing_chars"] += n
         if loose:
-            findings.append({"block": None, "type": "outside every block", "layer_words": loose[:60], "count": len(loose)})
+            # with their boxes (normalised, the displayed page): the issue's place (check/roi.py)
+            findings.append({"block": None, "type": "outside every block", "layer_words": loose[:60], "count": len(loose),
+                             "layer_boxes": loose_boxes[:60]})
             total["outside_words"] += len(loose)
         total["layer_words"] += len(words)
         if findings:

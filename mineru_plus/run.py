@@ -20,8 +20,9 @@ from .readers import mineru as MR, oxr as OX
 from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL, omissions as OM, two_readings as TR, resolve as RS, coverage as CV, tables as TB, equations as EQ
 from . import layer as LY, sections as SC, backends, config, source as SRC, linenums as LN
 from .check import linebreak as LB, respace as RSP, punct as PU, judge_cache as JC, accents as AC, confirm as CF
+from .check import grade as GR, roi as RI
 
-VERSION = "0.5.10"
+VERSION = "0.5.11"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
 TOKEN = re.compile(r"[A-Za-z0-9]+(?:[.,][0-9]+)*")
 WS = re.compile(r"\s+")
@@ -97,16 +98,46 @@ CALIBRATION = {   # tool-level measurements behind the checks; per-document numb
 }
 
 
-def _settled_later(md, subs, issues):
+TABLE_RULE = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
+
+
+def _not_prose(para):
+    """a markdown paragraph of a display equation, a table (with its '| --- |' rule: a sentence may open with '|x|'),
+    a figure or code"""
+    p = para.strip()
+    lines = [l for l in p.split("\n") if l.strip()]
+    table = len(lines) >= 2 and all(l.lstrip().startswith("|") for l in lines) and bool(TABLE_RULE.match(lines[1]))
+    return p.startswith(("$$", "![", "<table", "<html", "```")) or table
+
+
+def _settled_later(md, subs, issues, md0=""):
     """open disagreements a later step settled: full.md now prints OXR's reading between the same neighbours and no
-    longer the primary's"""
-    T = []
-    for para in md.split("\n\n"):
-        T += [m.group(0) for m in TR.TOK.finditer(TR.printed_map(para)[0])]
+    longer the primary's. md0: the reader's markdown before any step wrote into it"""
+    T, P, S = [], [], {}
+    as_read = {p.strip() for p in md0.split("\n\n")}
+    for k, para in enumerate(md.split("\n\n")):
+        toks = [m.group(0) for m in TR.TOK.finditer(TR.printed_map(para)[0])]
+        # the paragraphs the comparison reads: prose only (TR.PRIMARY_PROSE), so that the neighbours of a disagreement
+        # are found side by side where a display equation, a table or a figure stands between them (11-18, PTA-716 p9:
+        # 'temperature T > 0,' then the equation then 'T is optimized' was not found as settled)
+        if _not_prose(para):
+            # one as the reader wrote it holds none of the primary's prose tokens a later step moved (PTA-716 p9:
+            # the equation between the neighbours ends with its own '.')
+            S[k] = [] if para.strip() in as_read else toks
+            continue
+        T += toks; P += [k] * len(toks)
     pos = collections.defaultdict(list)
     for i, t in enumerate(T):
         pos[t].append(i)
-    has = lambda q: bool(q) and any(T[i:i + len(q)] == q for i in pos.get(q[0], []))
+    at = lambda q: [i for i in pos.get(q[0], []) if T[i:i + len(q)] == q] if q else []
+    has = lambda q: bool(at(q))
+    within = lambda q, seq: bool(q) and any(seq[i:i + len(q)] == q for i in range(len(seq) - len(q) + 1))
+
+    def settled_at(q, prim):
+        # a place printing OXR's reading whose skipped paragraphs (between its first and last token) do not hold the
+        # primary's: the primary's tokens cannot have gone into an equation or table there (review 11-18)
+        return any(not any(within(prim, S[k]) for k in range(P[i], P[i + len(q) - 1] + 1) if k in S)
+                   for i in at(q))
     by = {s["id"]: s for s in subs}
     keep, n = [], 0
     for x in issues:
@@ -115,7 +146,7 @@ def _settled_later(md, subs, issues):
             # three neighbours on one side and one on the other: the step that settled it may have changed the
             # other side's neighbours (10-30: a retyped formula ending '0.012).' before a new paragraph)
             ctx = [(s["left"][-3:], s["right"][:1]), (s["left"][-1:], s["right"][:3])]
-            if any(has(L + s["oxr_toks"] + R) for L, R in ctx) and \
+            if any(settled_at(L + s["oxr_toks"] + R, s["primary_toks"]) for L, R in ctx) and \
                     not any(has(L + s["primary_toks"] + R) for L, R in ctx):
                 s["settled_later"] = True; n += 1
                 continue
@@ -202,7 +233,23 @@ def _tables(pdf, mdir, odir, out, done):
         pg = LY.page(doc, t["page"] - 1); W, H = pg.rect.width, pg.rect.height; b = t["bbox"]
         crop = out / "checks" / "crops" / f"table_p{t['page']}_b{t['block']}.png"
         pg.get_pixmap(dpi=150, clip=pymupdf.Rect(b[0] * W, b[1] * H, b[2] * W, b[3] * H)).save(str(crop))   # displayed page
+        # what was and was not compared, in words (11-18 arbitration: an issue whose fields held nothing compared was
+        # read as '0 cells differ')
+        found = []
+        if L is None:
+            found.append("no text-layer words in the table's box: its characters are not checked against the layer")
+        elif bad_chars:
+            found.append(f"characters of the table not on the text layer: {L['chars_mineru_not_on_layer']}")
+        if O is None:
+            found.append("the second reader read no table here: rows and cells not compared")
+        elif bad_struct:
+            shape = (f"the second reader has {O['rows'][1]} rows and {O['cols'][1]} columns, MinerU {O['rows'][0]} and "
+                     f"{O['cols'][0]}; " if (O["rows"][0], O["cols"][0]) != (O["rows"][1], O["cols"][1]) else "")
+            found.append(shape + f"{len(O['diffs'])} rows or cells differ from the second reader's")
+        if L is None and O is None:
+            found.append("nothing in this table was compared: every cell is to be checked on the page")
         issues.append({"kind": "table", "page": t["page"], "block": t["block"], "crop": str(crop),
+                       "found": "; ".join(found),
                        "characters_not_on_layer": L["chars_mineru_not_on_layer"] if L else "no text layer in the box",
                        "layer_characters_missing": L["chars_layer_not_in_mineru"] if L else None,
                        "structure_vs_oxr": (O["diffs"][:40] if O else "no OXR table matched"),
@@ -497,7 +544,7 @@ def _parse(pdf, out, src, source=None):
                           f"text is not read), {mst.get('picture or printed text not settled (jev)', 0)} not settled (open issues)"}
     issues += mi
     if "characters" in checks:            # disagreements a later step settled (dropped, retyped formulas, tables)
-        issues, later = _settled_later(md, subs, issues)
+        issues, later = _settled_later(md, subs, issues, md0)
         checks["characters"]["settled_by_later_steps"] = later
         checks["characters"]["left_open"] = lo = sum(i["kind"] == "disagreement" for i in issues)
         checks["characters"]["summary"] += f"; {later} of the open ones settled by later steps, {lo} remain open"
@@ -523,12 +570,18 @@ def _parse(pdf, out, src, source=None):
                                                  indent=1, ensure_ascii=False))
     # issues a look at the page settles (check/confirm.py): closed where jev and the page judge both see the parse print
     # what the page prints (11-18: of the paper line's issues 3 in 4 were settled 'no change', each by an agent session)
+    issues = GR.apply(issues, MR.pages(mdir))           # what a real error there would cost; reported, not acted on
     issues, closed, cst = CF.confirm(out, pdf, issues, out / "checks" / "confirm")
     if closed:
         (out / "checks" / "confirm" / "closed.json").write_text(json.dumps(closed, indent=1, ensure_ascii=False))
     checks["confirm"] = {**cst, "summary": f"{cst['asked']} open issues of the kinds {', '.join(CF.KINDS)} shown to jev "
                          f"and the page judge with a crop of the page: {cst['closed']} closed where both saw the parse "
                          f"print what the page prints (checks/confirm/closed.json), {cst['left open']} issues left open"}
+    # where each issue handed on is: a crop of its place and the stretch of full.md printed there (check/roi.py)
+    rst = RI.attach(out, pdf, issues, out / "checks" / "roi")
+    checks["roi"] = {**rst, "summary": "issues placed on the page: " + ", ".join(f"{v} by {k}" for k, v in rst.items()
+                                                                          if k != "not placed")
+                     + f"; {rst.get('not placed', 0)} not placed (roi_missing gives the reason)"}
     (out / "issues.json").write_text(json.dumps(issues, indent=1, ensure_ascii=False))
 
     blocks = MR.blocks(mdir)
