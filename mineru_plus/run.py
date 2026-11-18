@@ -21,7 +21,7 @@ from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL,
 from . import layer as LY, sections as SC, backends, config, source as SRC, linenums as LN
 from .check import linebreak as LB, respace as RSP, punct as PU, judge_cache as JC, accents as AC, confirm as CF
 
-VERSION = "0.5.9"
+VERSION = "0.5.10"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
 TOKEN = re.compile(r"[A-Za-z0-9]+(?:[.,][0-9]+)*")
 WS = re.compile(r"\s+")
@@ -216,14 +216,13 @@ def _tables(pdf, mdir, odir, out, done):
 
 def _equations(pdf, mdir, odir, layer_pages):
     res = EQ.check(mdir, odir, pdf, layer_pages)
-    ok = ("same", "characters equal the text layer")
-    issues = [{"kind": "display equation", **e} for e in res if e["status"] not in ok]
+    issues = [{"kind": "display equation", **e} for e in res if e["status"] != "same"]
     same = sum(e["status"] == "same" for e in res)
-    lay = sum(e["status"] == ok[1] for e in res)
-    return ({"equations": len(res), "same_as_oxr": same, "characters_equal_layer": lay,
-             "summary": f"{same}/{len(res)} display equations equal OXR's LaTeX after canonical spelling; of the rest "
-                        f"{lay} print the letters and digits of the text layer in their box (characters confirmed, not "
-                        f"the layout); {len(issues)} open"}, issues)
+    lay = sum(bool(e.get("layer_letters_and_digits_equal")) for e in issues)
+    return ({"equations": len(res), "same_as_oxr": same, "open_with_layer_letters_equal": lay,
+             "summary": f"{same}/{len(res)} display equations equal OXR's LaTeX after canonical spelling; "
+                        f"{len(issues)} open ({lay} of them with the letters and digits of the text layer in their "
+                        f"box, a hint only)"}, issues)
 
 
 def _move_figures(pdf, rdir, md):
@@ -323,7 +322,8 @@ def _parse(pdf, out, src, source=None):
         # the checks against the text layer do not need a second reading and still run (11-02, PTA-12: OXR failed
         # on the main paper and dropped content, broken sentences and tables were then not checked at all)
         issues.append({"kind": "second reader failed", "detail": errs["oxr"], "why": "characters not compared with a "
-                       "second reading; the checks against the text layer ran"})
+                       "second reading, display equations and tables without a text layer not compared at all; the "
+                       "checks against the text layer ran"})
     oxp = OX.pages(odir) if oxr_ok else None
     if oxr_ok:
         dollars = TR.settle_dollars(mdir, odir, out / "checks" / "dollars")
@@ -489,14 +489,6 @@ def _parse(pdf, out, src, source=None):
     # a logo is a picture: what the primary read in it is no text OXR missed (11-03, PTA-05: a side note 'CellPress')
     issues = [i for i in issues if not (i["kind"] == "text only the primary read" and
                                         (i["page"], str(i.get("block"))) in logos)]
-    # a margin block on a page without a text layer is written to the closing section as unverified, as every margin
-    # block there is; the second reader leaving it unread is no finding of its own (11-18: 37 such issues on the paper
-    # line's 26 parses, side notes such as 'nature portfolio | reporting summary' and 'April 2023', all settled 'no
-    # change', none 'edit')
-    unv = {id(i) for i in issues if i["kind"] == "text only the primary read" and i.get("block_type") in MG.MARGIN
-           and i.get("verdict") == "page without a text layer"}
-    issues = [i for i in issues if id(i) not in unv]
-    checks["unread"]["margin blocks on pages without a text layer (unverified, in the closing section)"] = len(unv)
     checks["margins"] = {**mst, "summary": f"{mst.get('written', 0)} page headers, footers, page numbers and side notes the "
                           f"reader left out of its markdown written to the closing section; {mst.get('equal to the text layer', 0)} "
                           f"equal the text layer, {mst.get('differs from the text layer', 0)} differ (open issues), "

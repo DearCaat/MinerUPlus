@@ -10,36 +10,11 @@ from .. import layer as LY
 from ..readers import mineru as MR, oxr as OX
 from .two_readings import latex_plain
 
-WRAP = re.compile(r"\\(?:mathrm|text|textrm|textit|mathit|operatorname|mathbf|boldsymbol|textbf|left|right|displaystyle)\b")
-SPACE = re.compile(r"\\[,;:! ]|\\quad|\\qquad|~|\s+")
-FUNC = re.compile(r"\\(log|ln|exp|min|max|sin|cos|tan|arg|det|lim|sup|inf|Pr)(?![A-Za-z])")
 TAG = re.compile(r"\\tag\s*\{([^}]*)\}")
-# spellings that print alike (11-18, the paper line's 40 display-equation issues: 31 settled 'no change', most of them
-# differing only so): delimiter sizes, a prime, \to, and a brace or parenthesis around an array written as cases or
-# pmatrix
-SIZE = re.compile(r"\\(?:big|Big|bigg|Bigg)[lrm]?\b")
-PRIME = re.compile(r"\^\s*\{?\s*\\prime\s*\}?|\\prime\b")
-CASES = re.compile(r"\\left\s*\\\{\s*\\begin\{array\}\{[^}]*\}(.*?)\\end\{array\}\s*\\right\s*\.", re.S)
-PMATRIX = re.compile(r"\\left\s*\(\s*\\begin\{array\}\{[^}]*\}(.*?)\\end\{array\}\s*\\right\s*\)", re.S)
-
-
-def canon(s):
-    # a row break first: '\\ m' would otherwise lose its second backslash to the spacing command '\ '
-    s = (s or "").replace("\\\\", "¶")
-    s = CASES.sub(r"\\begin{cases}\1\\end{cases}", s)
-    s = PMATRIX.sub(r"\\begin{pmatrix}\1\\end{pmatrix}", s)
-    s = PRIME.sub("'", SIZE.sub("", s))
-    s = re.sub(r"\\to(?![A-Za-z])", r"\\rightarrow", s)
-    # the tags compared as a set: a reader puts \tag inside an array's last row or after it
-    tags = sorted(t.replace(" ", "") for t in TAG.findall(s))
-    s = TAG.sub("", s)
-    s = WRAP.sub("", s)
-    s = FUNC.sub(r"\1", s)
-    s = SPACE.sub("", s)
-    s = re.sub(r"¶(?=\\end)", "", s)            # an empty last row
-    s = s.replace("{", "").replace("}", "")
-    s = s.replace("'^", "'").replace("^'", "'")  # x^{\prime d}, x'^{d} and x^{'d} print alike
-    return s + "".join(f"({t})" for t in tags)
+# two readings are the same only where every step of the canonical spelling provably keeps what LaTeX prints
+# (latex_canon.py, 11-18; the regular expressions before it took out braces, fonts and the backslash of \max, and so
+# read \frac{ab}{c} as \frac{a}{bc}, x as \mathbf{x} and max as \max)
+from .latex_canon import canon
 
 
 def _alnum(s):
@@ -59,26 +34,34 @@ def check(primary_dir, oxr_dir, pdf_path=None, layer_pages=()):
     for pg in sorted(A):
         me = [(bi, b) for bi, b in A[pg] if b["type"] == "equation"]
         oe = [b["content"] for b in B.get(pg, []) if b["type"] == "Formula"]
+        oc = [canon(o) for o in oe]
         used = set()
         for bi, b in me:
             ca = canon(b.get("content"))
+            ka = ca if ca is not None else (b.get("content") or "")   # pairing only; None never counts as same
             best, r = None, 0.0
             for j, o in enumerate(oe):
-                q = difflib.SequenceMatcher(None, ca, canon(o), autojunk=False).ratio()
+                q = difflib.SequenceMatcher(None, ka, oc[j] if oc[j] is not None else (o or ""), autojunk=False).ratio()
                 if j not in used and q > r:
                     best, r = j, q
             item = {"page": pg, "block": bi, "bbox": b.get("bbox"), "mineru": b.get("content")}
-            if best is None or r < 0.5:
+            if ca == "":
+                item.update(status="empty equation")             # a box read as an equation that prints nothing
+            elif best is None or r < 0.5:
                 item.update(status="no OXR reading")
             else:
                 used.add(best)
-                item.update(oxr=oe[best], status="same" if ca == canon(oe[best]) else "differ")
+                same = ca is not None and ca == oc[best]
+                item.update(oxr=oe[best], status="same" if same else "differ")
+                if ca is None or oc[best] is None:
+                    item["latex_not_printable"] = [n for n, c in (("mineru", ca), ("oxr", oc[best])) if c is None]
             if item["status"] != "same" and pdf is not None and pg in layer_pages and b.get("bbox"):
                 page = LY.page(pdf, pg - 1); W, H = page.rect.width, page.rect.height; x0, y0, x1, y1 = b["bbox"]
                 clip = pymupdf.Rect(x0 * W - 2, y0 * H - 2, x1 * W + 2, y1 * H + 2) * page.derotation_matrix
                 lay = _alnum("".join(w[4] for w in LY.words(page, clip)))
                 item["layer"] = "".join(sorted(lay.elements()))
-                if lay and lay == printed(b.get("content")):
-                    item["status"] = "characters equal the text layer"
+                # a hint for whoever looks, not a confirmation: the layer keeps no two-dimensional order, so the same
+                # letters and digits are also those of x_2 for x^2 or b/a for a/b (11-18, rule 执-1)
+                item["layer_letters_and_digits_equal"] = bool(lay) and lay == printed(b.get("content"))
             res.append(item)
     return res
