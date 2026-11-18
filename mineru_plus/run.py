@@ -21,7 +21,7 @@ from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL,
 from . import layer as LY, sections as SC, backends, config, source as SRC, linenums as LN
 from .check import linebreak as LB, respace as RSP, punct as PU, judge_cache as JC, accents as AC, confirm as CF
 
-VERSION = "0.5.7"
+VERSION = "0.5.8"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
 TOKEN = re.compile(r"[A-Za-z0-9]+(?:[.,][0-9]+)*")
 WS = re.compile(r"\s+")

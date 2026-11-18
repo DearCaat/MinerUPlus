@@ -158,18 +158,28 @@ _usage = {}
 def _spaced(doc, left, right):
     """whether a cell's line break between two words stands for a space. The page does not show it (contract
     l1.text.fidelity: a form the page does not tell apart is no error, a space inside a word is one), so the evidence
-    is the paper's own text layer elsewhere: the two words side by side on a line, and never written as one word.
+    is the paper's own text layer elsewhere: never written as one word, and the two words side by side on a line or
+    the left one a whole word, one another word follows on a line somewhere (a word broken at a cell's edge ends its
+    line wherever it is printed: 'Concordanc', 'Mastectom').
     11-18, PTA-129 MOESM1 p7: 'Baseline+WSI' set in a narrow cell as 'Baseline+W' over 'SI' had become
-    'Baseline+W SI'."""
+    'Baseline+W SI'; the paper line, the same day: with the pair alone as evidence, 'Pathologist TILs' over 'cutoff'
+    became 'TILscutoff' and 'Responders' over 'n = 129' 'Respondersn = 129'."""
     if doc.name not in _usage:
         pairs, words = set(), set()
         for i in range(len(doc)):
             ws = LY.words(LY.page(doc, i))
             pairs |= {(a[4].lower(), b[4].lower()) for a, b in zip(ws, ws[1:]) if (a[5], a[6]) == (b[5], b[6])}
             words |= {w[4].lower() for w in ws}
-        _usage[doc.name] = pairs, words
-    pairs, words = _usage[doc.name]
-    return (left.lower(), right.lower()) in pairs and (left + right).lower() not in words
+        # a number stands for any number of its shape (PTA-598 p7: '93%' is followed by a word on a line elsewhere,
+        # '77%' is not, and the table's cells of both had become '93% (84%–98%)' and '77%(59%–93%)')
+        _usage[doc.name] = pairs, words, {_shape(a) for a, _ in pairs}
+    pairs, words, lead = _usage[doc.name]
+    l, r = left.lower(), right.lower()
+    return (l + r) not in words and ((l, r) in pairs or _shape(l) in lead)
+
+
+def _shape(w):
+    return re.sub(r"\d", "0", w)
 
 
 def check_table(page, b):
@@ -227,7 +237,11 @@ def _check(page, b, order):
         h = min(b1[3] - b1[1], b2[3] - b2[1])
         # a cell's next line (10-29: gaps on a line are no evidence, glyph widths in some layers are wrong: 'T umor')
         apart = b2[1] > b1[3] - 0.3 * h
-        if w1 != w2 and apart and p2 == p1 + 1 and lw[w1][0][-1:] not in "-–—−‐‑/" and \
+        # the cell's two characters end one layer word and begin the next (11-18, PTA-724 p10: the cell's 'BACH' aligned
+        # its 'B' to the 'B' of 'Bal.' on the line above and was written 'B ACH')
+        ends = m[i] + 1 == len(Lc) or Lc[m[i] + 1][1] != w1
+        begins = m[i + 1] == 0 or Lc[m[i + 1] - 1][1] != w2
+        if w1 != w2 and apart and ends and begins and p2 == p1 + 1 and lw[w1][0][-1:] not in "-–—−‐‑/" and \
                 _spaced(page.parent, lw[w1][0], lw[w2][0]):     # a line broken after a dash or slash
             glued.append({"cell": k1, "pos": p2, "left": lw[w1][0], "right": lw[w2][0]})
     # unmatched characters on either side, in runs
