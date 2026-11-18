@@ -5,6 +5,7 @@ centre lies inside the rectangle."""
 import pymupdf
 
 _cache = {}
+ZW = dict.fromkeys(map(ord, "\u200b\u200c\u200d\u2060\ufeff"))   # zero-width, never printed
 
 # list bullets and check marks of symbol fonts that carry no Unicode map: the layer has the font's code in the private
 # use area (U+F000 + code), which every check drops as unprintable (11-02, PTA-05 mmc3: Wingdings 'l' for the bullets
@@ -46,6 +47,32 @@ def _unseen(page, tp):
     return out
 
 
+def _overprint(ws):
+    """the words without the copies of a word drawn over itself: a word on the same baseline band as another (top and
+    bottom within a fifth of its height) whose text is that word's text, or its start or end at the same left or right
+    edge (the copies need not split alike: PTA-123 MOESM1 p5 overprints '0.0005*' with '0.0005'). A subscript under
+    a superscript is no copy: its band is lower (11-18, PTA-715 p8: the 'i' of n_i^imm under 'imm' was dropped)"""
+    rects = [pymupdf.Rect(w[:4]) for w in ws]
+    band = lambda r: int((r.y0 + r.y1) / 8)
+    near = {}
+    drop = set()
+
+    def copy(r, t, q, u):
+        e = 0.2 * r.height
+        if abs(r.y0 - q.y0) > e or abs(r.y1 - q.y1) > e:
+            return False
+        x0, x1 = abs(r.x0 - q.x0) <= e, abs(r.x1 - q.x1) <= e
+        return t == u and x0 and x1 or u.startswith(t) and x0 or u.endswith(t) and x1
+    for i in sorted(range(len(ws)), key=lambda i: -len(ws[i][4])):
+        r, t = rects[i], ws[i][4]
+        cands = [j for b in (band(r) - 1, band(r), band(r) + 1) for j in near.get(b, ())]
+        if r.get_area() > 0 and any(copy(r, t, rects[j], ws[j][4]) for j in cands):
+            drop.add(i)
+            continue
+        near.setdefault(band(r), []).append(i)
+    return [w for i, w in enumerate(ws) if i not in drop] if drop else ws
+
+
 def words(page, clip=None):
     key = (page.parent.name, page.number)
     if key not in _cache:
@@ -54,6 +81,16 @@ def words(page, clip=None):
         unseen = _unseen(page, tp)
         if unseen:
             ws = [w for w in ws if not any(pymupdf.Point((w[0] + w[2]) / 2, (w[1] + w[3]) / 2) in r for r in unseen)]
+        # zero-width characters are never printed and part of no word: some producers wrap every span in them
+        # (11-18, PTA-129 MOESM1: "\u200b1\u200b", "\u200bMethod\u200b"), and the margin and table checks took the
+        # layer "\u200b 1 \u200b" for other text than the reading "1" (26 margin issues on that document)
+        if any(ord(ch) in ZW for w in ws for ch in w[4]):
+            ws = [(*w[:4], w[4].translate(ZW), *w[5:]) for w in ws]
+            ws = [w for w in ws if w[4]]
+        # one word drawn several times over itself, a hair apart, prints once: bold set by overprinting (11-18,
+        # PTA-123 MOESM1 p4: the bold rows of Supplementary Table 8 three times in the layer, 0.2-0.5 pt apart, and
+        # the table check reported cells as "0.9234 ± 0.0086 0.9234 ± 0.0086 0.9462 ± ...")
+        ws = _overprint(ws)
         if any("\uf000" <= ch <= "\uf0ff" for w in ws for ch in w[4]):
             m = _dingbats(page)
             if m:

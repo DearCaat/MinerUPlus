@@ -18,10 +18,10 @@ from pathlib import Path
 from . import profile as PR, repair as RP, margins as MG, positions as PS, marks as MK
 from .readers import mineru as MR, oxr as OX
 from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL, omissions as OM, two_readings as TR, resolve as RS, coverage as CV, tables as TB, equations as EQ
-from . import layer as LY, sections as SC, backends, config, source as SRC
-from .check import linebreak as LB, respace as RSP, punct as PU, judge_cache as JC, accents as AC
+from . import layer as LY, sections as SC, backends, config, source as SRC, linenums as LN
+from .check import linebreak as LB, respace as RSP, punct as PU, judge_cache as JC, accents as AC, confirm as CF
 
-VERSION = "0.5.6"
+VERSION = "0.5.7"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
 TOKEN = re.compile(r"[A-Za-z0-9]+(?:[.,][0-9]+)*")
 WS = re.compile(r"\s+")
@@ -306,9 +306,16 @@ def _parse(pdf, out, src, source=None):
     if "mineru" in errs:
         raise RuntimeError("primary reader failed: " + errs["mineru"])
 
+    # line numbers in a page margin: out of the running text, one side note per page (linenums.py)
+    lnst, lni = LN.apply(pdf, mdir)
     md0, figs, undeclared = _move_figures(pdf, mdir, MR.markdown(mdir))
-    issues = [{"kind": "undeclared <details> left in text", "text": u} for u in undeclared]
+    issues = [{"kind": "undeclared <details> left in text", "text": u} for u in undeclared] + lni
     checks, unchecked = {}, []
+    if lnst:
+        checks["line numbers"] = {**lnst, "summary": f"{lnst.get('line numbers', 0)} line numbers in the margin of "
+                                  f"{lnst.get('pages with line numbers', 0)} pages written as side notes; "
+                                  f"{lnst.get('numbers taken out of the text', 0)} taken out of the running text the "
+                                  f"reader had put them in, {sum(len(i['numbers']) for i in lni)} left there (open issues)"}
     md, edits = md0, []
     oxr_ok = "oxr" not in errs
     if not oxr_ok:
@@ -514,6 +521,14 @@ def _parse(pdf, out, src, source=None):
     (out / "figures.json").write_text(json.dumps([{k: f.get(k) for k in ("page", "type", "bbox", "image_path",
                                                                            "text_layer_words_in_box")} for f in figs],
                                                  indent=1, ensure_ascii=False))
+    # issues a look at the page settles (check/confirm.py): closed where jev and the page judge both see the parse print
+    # what the page prints (11-18: of the paper line's issues 3 in 4 were settled 'no change', each by an agent session)
+    issues, closed, cst = CF.confirm(out, pdf, issues, out / "checks" / "confirm")
+    if closed:
+        (out / "checks" / "confirm" / "closed.json").write_text(json.dumps(closed, indent=1, ensure_ascii=False))
+    checks["confirm"] = {**cst, "summary": f"{cst['asked']} open issues of the kinds {', '.join(CF.KINDS)} shown to jev "
+                         f"and the page judge with a crop of the page: {cst['closed']} closed where both saw the parse "
+                         f"print what the page prints (checks/confirm/closed.json), {cst['left open']} issues left open"}
     (out / "issues.json").write_text(json.dumps(issues, indent=1, ensure_ascii=False))
 
     blocks = MR.blocks(mdir)

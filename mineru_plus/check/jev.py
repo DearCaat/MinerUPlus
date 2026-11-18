@@ -8,9 +8,10 @@ from .. import backends
 from . import judge_cache as JC
 
 
-def ask(questions, work, tag):
+def ask(questions, work, tag, min_p=None):
     """questions: [{"id", "state", "instructions", "options": {key: text, key2: text}, "images"?}] with two options.
-    Returns {id: key | "undecided" | "not judged: request failed"}. Answers are cached in work under the id and a
+    Returns {id: key | "undecided" | "not judged: request failed"}; with min_p an answer stands only where both orders
+    give it at least that probability (else "undecided"). Answers are cached in work under the id and a
     hash of the question (state, instructions, options, images): a rerun asks again only what changed."""
     work = Path(work); work.mkdir(parents=True, exist_ok=True)
     judge = backends.get("decision_judge")
@@ -62,7 +63,8 @@ def ask(questions, work, tag):
             top = max(pr, key=pr.get)
             ks = keys_of[qid]
             second = ks[1] if first == ks[0] else ks[0]
-            per.setdefault(qid, {})[first] = {"first": first, "second": second}.get(top, top)
+            ans = {"first": first, "second": second}.get(top, top)
+            per.setdefault(qid, {})[first] = ans if min_p is None or pr[top] >= min_p else "undecided"
     out = {}
     for q in questions:
         v = per.get(key[q["id"]], {})

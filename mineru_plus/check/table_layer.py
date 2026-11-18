@@ -90,6 +90,9 @@ def cell_chars(cell):
             out += [(ch, None) for ch in html.unescape(m.group()) if not ch.isspace()]
             at = m.end()
         return out + [(ch, at + i) for i, ch in enumerate(t[at:]) if not ch.isspace()]
+    # an asterisk in a formula prints (an asterisk outside one is markdown emphasis): '$0.0007^{*}$' prints
+    # '0.0007*' (11-18, PTA-123 MOESM1 Supplementary Tables 9-11: 30 cells reported for the dropped '*')
+    t = re.sub(r"(?<!\\)\$[^$]+\$", lambda m: m.group().replace("*", "∗"), t)
     return [(ch, None) for ch in _nf("".join(TB.cell_toks(re.sub(r"<[^>]+>", " ", t))))]
 
 
@@ -149,6 +152,26 @@ def align(M, L):
     return m
 
 
+_usage = {}
+
+
+def _spaced(doc, left, right):
+    """whether a cell's line break between two words stands for a space. The page does not show it (contract
+    l1.text.fidelity: a form the page does not tell apart is no error, a space inside a word is one), so the evidence
+    is the paper's own text layer elsewhere: the two words side by side on a line, and never written as one word.
+    11-18, PTA-129 MOESM1 p7: 'Baseline+WSI' set in a narrow cell as 'Baseline+W' over 'SI' had become
+    'Baseline+W SI'."""
+    if doc.name not in _usage:
+        pairs, words = set(), set()
+        for i in range(len(doc)):
+            ws = LY.words(LY.page(doc, i))
+            pairs |= {(a[4].lower(), b[4].lower()) for a, b in zip(ws, ws[1:]) if (a[5], a[6]) == (b[5], b[6])}
+            words |= {w[4].lower() for w in ws}
+        _usage[doc.name] = pairs, words
+    pairs, words = _usage[doc.name]
+    return (left.lower(), right.lower()) in pairs and (left + right).lower() not in words
+
+
 def check_table(page, b):
     """the table checked with the layer words in content-stream order (generators write a row's cells one after
     another, a wrapped cell whole: 10-29, 100 tables, 99.4% of characters aligned) or in line order, whichever aligns
@@ -204,7 +227,8 @@ def _check(page, b, order):
         h = min(b1[3] - b1[1], b2[3] - b2[1])
         # a cell's next line (10-29: gaps on a line are no evidence, glyph widths in some layers are wrong: 'T umor')
         apart = b2[1] > b1[3] - 0.3 * h
-        if w1 != w2 and apart and p2 == p1 + 1 and lw[w1][0][-1:] not in "-–—−‐‑/":     # a line broken after a dash or slash
+        if w1 != w2 and apart and p2 == p1 + 1 and lw[w1][0][-1:] not in "-–—−‐‑/" and \
+                _spaced(page.parent, lw[w1][0], lw[w2][0]):     # a line broken after a dash or slash
             glued.append({"cell": k1, "pos": p2, "left": lw[w1][0], "right": lw[w2][0]})
     # unmatched characters on either side, in runs
     used = set(m.values())

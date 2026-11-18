@@ -38,6 +38,25 @@ def _same_words(lay, text):
     return norm(w for w in lay if w.strip()) == norm(mine)
 
 
+def _splits_word(lay, shown):
+    """True when the printed text splits a word the layer keeps whole: '1 2' against the layer's '12'. The word ends
+    of the printed text, counted in the characters the comparison keeps, must all be word ends of the layer, so a layer
+    split into letters and printed joined ('J O U R N A L' against 'JOURNAL') is not split. Where the characters of
+    the printed tokens do not add up to those of the whole text, nothing is required (False)."""
+    lens = [len(DR.plain_map(t)) for t in shown.split()]
+    if sum(lens) != len(DR.plain_map(shown)):
+        return False
+
+    def ends(ns):
+        out, n = set(), 0
+        for k in ns:
+            n += k
+            out.add(n)
+        return {e for e in out if 0 < e < n}
+    lay_ends = ends(len("".join(x for ch in w for x in DR._norm_char(ch))) for w in lay)
+    return not ends(lens) <= lay_ends
+
+
 def _alnum(text):
     return "".join(c.lower() for c, _ in DR.plain_map(text) if c.isalnum())
 
@@ -139,7 +158,8 @@ def add(pdf, mdir, md, no_layer_pages=(), work=None):
                                b["bbox"][2] * page.rect.width, b["bbox"][3] * page.rect.height) * page.derotation_matrix
             if pg not in drawn:
                 drawn[pg] = page.get_cdrawings()
-            item["equal"] = lc == bc or _same_words(lay, shown)
+            # 11-18, PTA-129 MOESM1: page numbers '1 2' and '1 7' were judged equal to the layers '12' and '17' (_splits_word)
+            item["equal"] = (lc == bc and not _splits_word(lay, shown)) or _same_words(lay, shown)
             # the layer does not confirm it: other characters in the box (10-29: the CellPress logo holds only 'll'),
             # or glyphs drawn as curves beside the layer words there (11-03: 'Ce' and 'Press' around a layer 'll')
             if not item["equal"] or _outlined(page, box, drawn[pg]):
