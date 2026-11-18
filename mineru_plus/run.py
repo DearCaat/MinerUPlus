@@ -21,7 +21,7 @@ from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL,
 from . import layer as LY, sections as SC, backends, config, source as SRC, linenums as LN
 from .check import linebreak as LB, respace as RSP, punct as PU, judge_cache as JC, accents as AC, confirm as CF
 
-VERSION = "0.5.8"
+VERSION = "0.5.9"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
 TOKEN = re.compile(r"[A-Za-z0-9]+(?:[.,][0-9]+)*")
 WS = re.compile(r"\s+")
@@ -489,6 +489,14 @@ def _parse(pdf, out, src, source=None):
     # a logo is a picture: what the primary read in it is no text OXR missed (11-03, PTA-05: a side note 'CellPress')
     issues = [i for i in issues if not (i["kind"] == "text only the primary read" and
                                         (i["page"], str(i.get("block"))) in logos)]
+    # a margin block on a page without a text layer is written to the closing section as unverified, as every margin
+    # block there is; the second reader leaving it unread is no finding of its own (11-18: 37 such issues on the paper
+    # line's 26 parses, side notes such as 'nature portfolio | reporting summary' and 'April 2023', all settled 'no
+    # change', none 'edit')
+    unv = {id(i) for i in issues if i["kind"] == "text only the primary read" and i.get("block_type") in MG.MARGIN
+           and i.get("verdict") == "page without a text layer"}
+    issues = [i for i in issues if id(i) not in unv]
+    checks["unread"]["margin blocks on pages without a text layer (unverified, in the closing section)"] = len(unv)
     checks["margins"] = {**mst, "summary": f"{mst.get('written', 0)} page headers, footers, page numbers and side notes the "
                           f"reader left out of its markdown written to the closing section; {mst.get('equal to the text layer', 0)} "
                           f"equal the text layer, {mst.get('differs from the text layer', 0)} differ (open issues), "

@@ -12,16 +12,34 @@ from .two_readings import latex_plain
 
 WRAP = re.compile(r"\\(?:mathrm|text|textrm|textit|mathit|operatorname|mathbf|boldsymbol|textbf|left|right|displaystyle)\b")
 SPACE = re.compile(r"\\[,;:! ]|\\quad|\\qquad|~|\s+")
-FUNC = re.compile(r"\\(log|ln|exp|min|max|sin|cos|tan|arg|det|lim|sup|inf|Pr)\b")
+FUNC = re.compile(r"\\(log|ln|exp|min|max|sin|cos|tan|arg|det|lim|sup|inf|Pr)(?![A-Za-z])")
 TAG = re.compile(r"\\tag\s*\{([^}]*)\}")
+# spellings that print alike (11-18, the paper line's 40 display-equation issues: 31 settled 'no change', most of them
+# differing only so): delimiter sizes, a prime, \to, and a brace or parenthesis around an array written as cases or
+# pmatrix
+SIZE = re.compile(r"\\(?:big|Big|bigg|Bigg)[lrm]?\b")
+PRIME = re.compile(r"\^\s*\{?\s*\\prime\s*\}?|\\prime\b")
+CASES = re.compile(r"\\left\s*\\\{\s*\\begin\{array\}\{[^}]*\}(.*?)\\end\{array\}\s*\\right\s*\.", re.S)
+PMATRIX = re.compile(r"\\left\s*\(\s*\\begin\{array\}\{[^}]*\}(.*?)\\end\{array\}\s*\\right\s*\)", re.S)
 
 
 def canon(s):
-    s = TAG.sub(r"(\1)", s or "")
+    # a row break first: '\\ m' would otherwise lose its second backslash to the spacing command '\ '
+    s = (s or "").replace("\\\\", "¶")
+    s = CASES.sub(r"\\begin{cases}\1\\end{cases}", s)
+    s = PMATRIX.sub(r"\\begin{pmatrix}\1\\end{pmatrix}", s)
+    s = PRIME.sub("'", SIZE.sub("", s))
+    s = re.sub(r"\\to(?![A-Za-z])", r"\\rightarrow", s)
+    # the tags compared as a set: a reader puts \tag inside an array's last row or after it
+    tags = sorted(t.replace(" ", "") for t in TAG.findall(s))
+    s = TAG.sub("", s)
     s = WRAP.sub("", s)
     s = FUNC.sub(r"\1", s)
     s = SPACE.sub("", s)
-    return s.replace("{", "").replace("}", "")
+    s = re.sub(r"¶(?=\\end)", "", s)            # an empty last row
+    s = s.replace("{", "").replace("}", "")
+    s = s.replace("'^", "'").replace("^'", "'")  # x^{\prime d}, x'^{d} and x^{'d} print alike
+    return s + "".join(f"({t})" for t in tags)
 
 
 def _alnum(s):
