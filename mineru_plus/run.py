@@ -22,7 +22,7 @@ from . import layer as LY, sections as SC, backends, config, source as SRC, line
 from .check import linebreak as LB, respace as RSP, punct as PU, judge_cache as JC, accents as AC, confirm as CF
 from .check import grade as GR, roi as RI, mathrender as MRN
 
-VERSION = "0.5.12"
+VERSION = "0.5.13"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
 TOKEN = re.compile(r"[A-Za-z0-9]+(?:[.,][0-9]+)*")
 WS = re.compile(r"\s+")
@@ -590,9 +590,12 @@ def _parse(pdf, out, src, source=None):
     issues, closed, cst = CF.confirm(out, pdf, issues, out / "checks" / "confirm")
     if closed:
         (out / "checks" / "confirm" / "closed.json").write_text(json.dumps(closed, indent=1, ensure_ascii=False))
-    checks["confirm"] = {**cst, "summary": f"{cst['asked']} open issues of the kinds {', '.join(CF.KINDS)} shown to jev "
-                         f"and the page judge with a crop of the page: {cst['closed']} closed where both saw the parse "
-                         f"print what the page prints (checks/confirm/closed.json), {cst['left open']} issues left open"}
+    checks["confirm"] = {**cst, "summary": f"{cst['asked']} open issues of the kinds {', '.join(k for k in CF.KINDS if k != CF.DISPLAY)} "
+                         f"shown to jev and the page judge with a crop of the page, {cst['display equations read']} "
+                         f"display equations written out by the page judge from a crop: {cst['closed']} closed where "
+                         f"they saw the parse print what the page prints ({cst['closed by reading']} by reading; "
+                         f"checks/confirm/closed.json), {cst['readings attached']} readings attached to issues left "
+                         f"open, {cst['left open']} issues left open"}
     # where each issue handed on is: a crop of its place and the stretch of full.md printed there (check/roi.py)
     rst = RI.attach(out, pdf, issues, out / "checks" / "roi")
     checks["roi"] = {**rst, "summary": "issues placed on the page: " + ", ".join(f"{v} by {k}" for k, v in rst.items()

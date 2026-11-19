@@ -44,6 +44,9 @@ SAME = [
     (r"a \, b \quad c", r"abc"),
     (r"\mathbf {u} _ {i}", r"\mathbf{u}_{i}"),
     (r"\mathop{\mathrm{argmax}}_h", r"\arg\max_h"),
+    (r"\boldsymbol{0}_{N}", r"\mathbf{0}_N"),
+    (r"\boldsymbol{\Phi}", r"\mathbf{\Phi}"),
+    (r"\bm{2}", r"\mathbf 2"),
 ]
 
 DIFFER = [
@@ -58,6 +61,8 @@ DIFFER = [
     (r"\mathbf{x}", r"x"),
     (r"\mathbf{x}", r"\boldsymbol{x}"),
     (r"\boldsymbol{\xi}", r"\xi"),
+    (r"\boldsymbol{\phi}", r"\mathbf{\phi}"),
+    (r"\boldsymbol{x0}", r"\mathbf{x0}"),
     (r"\max_j", r"max_j"),
     (r"\mathrm{x}", r"x"),
     (r"\mathrm{α}", r"α"),

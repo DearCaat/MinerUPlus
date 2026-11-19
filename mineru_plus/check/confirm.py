@@ -26,6 +26,7 @@ from .. import backends
 from .. import layer as LY
 from ..readers import mineru as MR
 from . import jev, gemini as G, judge_cache as JC
+from .latex_canon import canon
 
 ALL_KINDS = ("text layer not in the parse", "disagreement", "text only the primary read", "table", "display equation",
              "margin text differs from the text layer")
@@ -35,7 +36,8 @@ TABLE_LIMIT = 8000     # a table is given whole up to this
 SHORT = 300            # a marked place (a few words) whose stretch runs longer is narrowed to the issue's words
 PER_SHEET = 6
 # the kinds closed and how sure jev must be (confirm(): measured 11-18; tools/confirm_eval.py measures again)
-KINDS = ("text layer not in the parse", "table", "text only the primary read")
+DISPLAY = "display equation"
+KINDS = ("text layer not in the parse", "table", "text only the primary read", DISPLAY)
 MIN_P = 0.98
 
 INSTR = ("The image is cut from a printed page of a scientific paper. Below it is the text a parser wrote for this "
@@ -242,7 +244,7 @@ def items(out, pdf, issues, work, kinds=ALL_KINDS):
             md = D["md"]
             text = md[max(0, a - CONTEXT):a] + "⟦" + md[a:b] + "⟧" + md[b:b + CONTEXT]
             parts.append({"page": page, "crop": _crop(doc, page, r, mark, work / "crops" / f"c{n}.{j}.png"),
-                          "text": text})
+                          "text": text, **({"formula": _formula_at(md, a, b)} if issue["kind"] == DISPLAY else {})})
         if len(parts) != len(places):
             skipped[n] = "text of the place not found in full.md"; continue
         res.append({"n": n, "id": f"c{n}", "kind": issue["kind"], "parts": parts, "suspect": _suspect(issue)})
@@ -313,20 +315,161 @@ def ask_model(qs, work):
     return out
 
 
+READ = ("Each numbered strip on the sheets is cut from a printed page of a scientific paper and shows one displayed "
+        "equation, with its number where the page prints one. Write for each strip the LaTeX that prints exactly what "
+        "the strip prints: every letter, digit, symbol and operator; the style of each letter (italic, upright, bold, "
+        "bold italic, calligraphic, script, blackboard, fraktur); accents, hats and bars; subscripts and superscripts; "
+        "delimiters and their sizes where they differ; low dots (\\ldots) against centred dots (\\cdots); the "
+        "equation number as \\tag{n}. Do not correct, complete or simplify anything: where the page prints something "
+        "odd, write it as printed. Where a strip shows no equation, or not one whole, answer null for it.\n\n"
+        "Answer with JSON only, one key per strip: {\"1\": \"LaTeX\" or null, \"2\": ...}")
+READINGS = 2
+
+
+_DD = re.compile(r"(?m)^ {0,3}\$\$[ \t]*$")                  # four spaces in, a line is indented code
+# a fence closes on a line of its character alone, at least as long; an unclosed one runs to the end (CommonMark)
+_FENCE = re.compile(r"(?ms)^ {0,3}(`{3,}|~{3,}).*?(?:^ {0,3}\1(?:(?<=`)`*|(?<=~)~*)[ \t]*$|\Z)")
+
+
+def _blank_before(md, s):
+    p = md[:s].rstrip(" \t")
+    if not p:
+        return True
+    p = p[:-1].rstrip(" \t") if p.endswith("\n") else None
+    return p is not None and (not p or p.endswith("\n"))
+
+
+def _blank_after(md, e):
+    q = md[e:].lstrip(" \t")
+    if not q:
+        return True
+    q = q[1:].lstrip(" \t") if q.startswith("\n") else None
+    return q is not None and (not q or q.startswith("\n"))
+
+
+def _formula_at(md, a, b):
+    """the display formula full.md has around md[a:b], without its '$$', as MinerU writes one: the stretch, white space
+    trimmed, lies between an opening line '$$' and its closing one (the '$$' lines, at most three spaces in, outside
+    code fences, paired from
+    the start of full.md; where their count is odd nothing is paired), each with a blank line or the end of full.md
+    on its outer side, and no blank line and no '$$' between them; None otherwise"""
+    while a < b and md[a].isspace():
+        a += 1
+    while b > a and md[b - 1].isspace():
+        b -= 1
+    if a >= b:
+        return None
+    code = [(m.start(), m.end()) for m in _FENCE.finditer(md)]
+    lines = [(m.start(), m.end()) for m in _DD.finditer(md) if not any(s <= m.start() < e for s, e in code)]
+    if len(lines) % 2:                                         # a '$$' without its pair: no pairing to trust
+        return None
+    o = max((k for k, x in enumerate(lines) if x[0] <= a), default=None)
+    c = min((k for k, x in enumerate(lines) if x[1] >= b), default=None)
+    if o is None or c != o + 1 or o % 2:
+        return None
+    if not (_blank_before(md, lines[o][0]) and _blank_after(md, lines[c][1])):
+        return None
+    body = md[lines[o][1]:lines[c][0]]
+    if not body.strip() or "$$" in body or re.search(r"\n[ \t]*\n", body):
+        return None
+    return body.strip()
+
+
+def same_tex(a, b):
+    """two LaTeX readings that print alike (latex_canon); never where either is no LaTeX that prints"""
+    if not a or not b:
+        return False
+    ca = canon(a)
+    return ca is not None and ca == canon(b)
+
+
+def ask_reading(qs, work, sessions=READINGS):
+    """{id: [the page judge's LaTeX of the question's crop or None, one a session]}: the crops on numbered sheets,
+    the second session with them in reverse order; the page judge is not shown what the parse wrote"""
+    work = Path(work)
+    flat = [q for q in qs if len(q["parts"]) == 1]
+    page, cache = backends.get("page_judge"), JC.directory("page_judge")
+    got = {q["id"]: [None] * sessions for q in flat}
+    per = PER_SHEET * 4
+    for s0 in range(0, len(flat), per):
+        chunk = flat[s0:s0 + per]
+        for s in range(sessions):
+            order = chunk if s % 2 == 0 else chunk[::-1]
+            sd = work / "sheets" / f"{s0}_{s}"; sd.mkdir(parents=True, exist_ok=True)
+            sheets = G._sheets([q["parts"][0]["crop"] for q in order], sd)
+            k = JC.key(page.info(), READ, [JC.file_hash(x) for x in sheets])
+            hit = JC.get(cache, k)
+            if hit is not None:
+                ans = hit["answer"]
+            else:
+                ans, use, _ = page.session(READ, sheets, work)
+                if ans is not None:
+                    JC.put(cache, k, {"answer": ans, "usage": use})
+            for pos, q in enumerate(order, 1):
+                v = (ans or {}).get(str(pos))
+                got[q["id"]][s] = v.strip() if isinstance(v, str) and v.strip() else None
+    return got
+
+
+def read_verdict(q, readings, oxr, mineru):
+    """'close' where every reading prints as the formula full.md has at the question's place and that formula is the
+    issue's own (the primary's reading it holds: a place found at another formula is not this issue's); 'suggest'
+    where every reading prints as OXR's reading of it (the other reader) and full.md's is not that; None otherwise"""
+    f = q["parts"][0].get("formula") if len(q["parts"]) == 1 else None
+    if f and same_tex(f, mineru) and readings and all(same_tex(r, f) for r in readings):
+        return "close"
+    if readings and all(same_tex(r, oxr) for r in readings) and not same_tex(f, oxr):
+        return "suggest"
+    return None
+
+
 def confirm(out, pdf, issues, work, kinds=KINDS):
     """(issues left open, issues closed, stats). An issue is closed where jev answers 'match' in both option orders,
     each with probability at least MIN_P, and the page judge answers 'match' in both sessions; every other issue is
     left open. Measured 11-18 on the paper line's 433 settled issues of 26 documents: of the kinds in KINDS, 52 of the
     252 'no change' closed and none of the 46 'edit'; the two judges each closed edits on their own (jev 'match' alone
     14, among them the text layer's '⊮' the page prints where the parse has '\\mathbb{1}'; both at a lower
-    probability 3), and in disagreements and display equations both closed edits at any probability."""
+    probability 3), and in disagreements and display equations both closed edits at any probability.
+
+    Display equations are not asked whether they match (both judges closed edits at any probability): the page judge
+    writes the LaTeX of each crop, not shown the parse's, in READINGS sessions, and the issue is closed where every
+    reading prints as the formula full.md has at its place (_formula_at; where it finds none, nothing closes) and
+    that formula prints as the issue's MinerU text (latex_canon). A wrong close needs the page judge to misread the
+    page, in every session, into what the parse wrote. Measured 11-19 with this code (tools/reread_eval.py: 40 items
+    in items_dev.jsonl, the paper line's parse set dev_1114 of 9 documents; readings in reread/work_prod) at the
+    paper line's 40 settled display equations, 35 of them with the settled LaTeX known (31 'no change', 4 'edit'):
+    15 'no change' closed, no 'edit', none of the 5 others; every closed formula canon-equal to the settled one. On
+    this version's evaluation run of 26 documents (runs/eval_1118, docs26.txt; its own parses, other than the paper
+    line's) 12 closed: 4 of them formulas of a document among those 9 with the same MinerU text as a settled
+    'no change' item, and 8 with no settled answer, checked by eye against the page (11-19): all 8 print what the
+    page prints. tools/reread_mutants.py tests 315 errors seeded into the formulas against the readings and finds
+    none read so; that is informative only where the readings differ from the formula, and rests on canon telling
+    the errors apart. Where every reading prints as OXR's reading and full.md's is otherwise, the readings go with
+    the issue record as 'page_reads_as_oxr', a suggestion; full.md is not changed (解-9; 2 such among the 35, OXR's
+    the settled one in both).
+    """
+    issues = list(issues)
     qs, skipped = items(out, pdf, issues, work, kinds)
+    disp, qs = [q for q in qs if q["kind"] == DISPLAY], [q for q in qs if q["kind"] != DISPLAY]
+    vr = ask_reading(disp, Path(work) / "reading") if disp else {}
+    read, suggested = set(), 0
+    for q in disp:
+        rs = vr.get(q["id"]) or []
+        v = read_verdict(q, rs, issues[q["n"]].get("oxr"), issues[q["n"]].get("mineru"))
+        if v == "close":
+            read.add(q["n"])
+        elif v == "suggest":
+            issues[q["n"]] = {**issues[q["n"]], "page_reads_as_oxr": rs}
+            suggested += 1
     vj = ask_jev(qs, Path(work) / "jev", MIN_P)
     sure = [q for q in qs if vj.get(q["id"]) == "match"]
     vm = ask_model(sure, Path(work) / "model") if sure else {}
     by = {q["n"] for q in sure if vm.get(q["id"]) == "match"}
-    left = [i for n, i in enumerate(issues) if n not in by]
+    left = [i for n, i in enumerate(issues) if n not in by | read]
     closed = [{**issues[n], "closed_by": "jev and the page judge"} for n in sorted(by)]
-    stats = {"asked": len(qs), "not asked": len(skipped), "jev sure of a match": len(sure), "closed": len(closed),
-             "left open": len(left)}
+    closed += [{**issues[n], "closed_by": "the page judge's readings", "readings": vr[q["id"]]}
+               for q in disp for n in [q["n"]] if n in read]
+    stats = {"asked": len(qs), "not asked": len(skipped), "jev sure of a match": len(sure),
+             "display equations read": len(disp), "closed by reading": len(read),
+             "readings attached": suggested, "closed": len(closed), "left open": len(left)}
     return left, closed, stats

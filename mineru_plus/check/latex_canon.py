@@ -242,6 +242,12 @@ def _seq(items, text, font, st):
     return _finish(out)
 
 
+# \boldsymbol prints these in the bold upright of \mathbf: they are upright already (pdfLaTeX sets both from cmbx10
+# under Computer Modern; KaTeX from Main-Bold, class mathbf, as for \mathbf)
+BM_AS_BF = set("0123456789") | {r"\Gamma", r"\Delta", r"\Theta", r"\Lambda", r"\Xi", r"\Pi", r"\Sigma",
+                                r"\Upsilon", r"\Phi", r"\Psi", r"\Omega"}
+
+
 def _glyph(t, text, font):
     if len(t) == 1 and (unicodedata.category(t) in ("Cc", "Cf", "Zl", "Zp") or t == "\x7f"):
         return f"U+{ord(t):04X}"                      # a control character is no space and no separator
@@ -260,6 +266,8 @@ def _glyph(t, text, font):
         if len(t) == 1 and t.isalpha():
             return f"rm:{t}"
         return t
+    if font == "bm" and t in BM_AS_BF:
+        return f"bf:{t}"
     return f"{font}:{t}"
 
 
