@@ -20,9 +20,9 @@ from .readers import mineru as MR, oxr as OX
 from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL, omissions as OM, two_readings as TR, resolve as RS, coverage as CV, tables as TB, equations as EQ
 from . import layer as LY, sections as SC, backends, config, source as SRC, linenums as LN
 from .check import linebreak as LB, respace as RSP, punct as PU, judge_cache as JC, accents as AC, confirm as CF
-from .check import grade as GR, roi as RI
+from .check import grade as GR, roi as RI, mathrender as MRN
 
-VERSION = "0.5.11"
+VERSION = "0.5.12"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
 TOKEN = re.compile(r"[A-Za-z0-9]+(?:[.,][0-9]+)*")
 WS = re.compile(r"\s+")
@@ -552,6 +552,22 @@ def _parse(pdf, out, src, source=None):
     md, nt = TR.tidy_math(md)            # numbers and styled words in formulas spelled as printed (rendering unchanged)
     checks["formula_spacing"] = {"formulas": nt, "summary": f"{nt} formulas respelled without the spaces LaTeX ignores "
                                                             "('0 . 0 1 5' as '0.015', '\\mathrm { A U C }' as '\\mathrm{AUC}')"}
+    fr = None
+    if MRN.available():                  # formulas KaTeX cannot render: errors for certain (check/mathrender.py)
+        try:
+            fr = MRN.repair(md, MR.pages(mdir), oxp)
+        except MRN.KatexError as e:
+            unchecked.append(f"formulas: not rendered (KaTeX failed: {e}); a formula that cannot render is not caught")
+    else:
+        unchecked.append("formulas: not rendered (node or the bundled KaTeX missing); a formula that cannot render "
+                         "is not caught")
+    if fr:
+        md, fcount, fi, fdone = fr
+        issues += fi
+        checks["formula_render"] = {**fcount, "repairs": fdone, "summary": (
+            f"{fcount['rejected by KaTeX']} of {fcount['formulas']} formulas KaTeX cannot render and "
+            f"{fcount['stray dollars']} '$' opening no formula: {fcount['scripts braced']} double scripts braced, "
+            f"{fcount['left open']} sentences left open (with the second reader's reading where located)")}
     (out / "full.md").write_text(md)
     checks["sections"] = {"sections": SC.write(pdf, md, mdir, out),
                           "summary": "sections.json and quote_index.json in the pdf_parser schema"}
