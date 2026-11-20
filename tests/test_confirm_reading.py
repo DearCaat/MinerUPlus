@@ -65,6 +65,25 @@ def test_formula_at_trusts_no_pairing_it_cannot_make():
     assert CF._formula_at(md, *_at(md, "y")) is None
 
 
+def test_reading_asks_each_session_even_for_one_crop(monkeypatch, tmp_path):
+    crop = tmp_path / "c.png"; crop.write_bytes(b"x")
+    calls = []
+
+    class Page:
+        def info(self):
+            return "fake"
+
+        def session(self, body, sheets, work):
+            calls.append(list(sheets))
+            return {"1": f"a{len(calls)}"}, None, None
+    monkeypatch.setattr(CF.backends, "get", lambda role: Page())
+    monkeypatch.setattr(CF.JC, "directory", lambda role: tmp_path / "cache")
+    monkeypatch.setattr(CF.G, "_sheets", lambda crops, d: list(crops))
+    q = [{"id": "q", "parts": [{"crop": str(crop)}]}]
+    assert CF.ask_reading(q, tmp_path / "w") == {"q": ["a1", "a2"]}
+    assert CF.ask_reading(q, tmp_path / "w") == {"q": ["a1", "a2"]} and len(calls) == 2   # cached per session
+
+
 def test_confirm_routes_display_equations(monkeypatch, tmp_path):
     issues = [{"kind": CF.DISPLAY, "oxr": o, "mineru": "x"} for o in "yzw"] + [{"kind": "table"}]
     qs = [{"n": n, "id": f"c{n}", "kind": CF.DISPLAY, "parts": [{"formula": "x", "text": "", "crop": ""}],

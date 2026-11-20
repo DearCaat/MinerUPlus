@@ -393,11 +393,17 @@ def ask_reading(qs, work, sessions=READINGS):
     per = PER_SHEET * 4
     for s0 in range(0, len(flat), per):
         chunk = flat[s0:s0 + per]
+        asked = []
         for s in range(sessions):
             order = chunk if s % 2 == 0 else chunk[::-1]
             sd = work / "sheets" / f"{s0}_{s}"; sd.mkdir(parents=True, exist_ok=True)
             sheets = G._sheets([q["parts"][0]["crop"] for q in order], sd)
-            k = JC.key(page.info(), READ, [JC.file_hash(x) for x in sheets])
+            hs = [JC.file_hash(x) for x in sheets]
+            # sheets an earlier session was shown (one crop reversed is itself) are asked again, the session in the key:
+            # without it the second reading was the cached first (11-20, held-out PTA-000719 p.18 closed on one
+            # reading); other sheets keep their keys, so their cached readings stand
+            k = JC.key(page.info(), READ, hs, *([s] if hs in asked else []))
+            asked.append(hs)
             hit = JC.get(cache, k)
             if hit is not None:
                 ans = hit["answer"]

@@ -22,7 +22,7 @@ from . import layer as LY, sections as SC, backends, config, source as SRC, line
 from .check import linebreak as LB, respace as RSP, punct as PU, judge_cache as JC, accents as AC, confirm as CF
 from .check import grade as GR, roi as RI, mathrender as MRN
 
-VERSION = "0.5.14"
+VERSION = "0.5.15"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
 TOKEN = re.compile(r"[A-Za-z0-9]+(?:[.,][0-9]+)*")
 WS = re.compile(r"\s+")
