@@ -39,7 +39,10 @@ class PageJudge:
                 m = re.search(r"\{.*\}", resp, re.S)
                 if not m:
                     return None, env.get("usage"), "no JSON in the answer: " + resp[:200]
-                return json.loads(m.group(0)), env.get("usage"), None
+                try:   # strict=False: the model may put a raw line break inside a string (11-20, PTA-000457)
+                    return json.loads(m.group(0), strict=False), env.get("usage"), None
+                except json.JSONDecodeError as e:
+                    return None, env.get("usage"), f"no JSON in the answer: {e}"
             err = err or ("empty answer, no tokens used (status %s): %s" % (env.get("status"), (p.stderr or "")[-200:]))
             time.sleep(60 * (k + 1))
         return None, None, err
