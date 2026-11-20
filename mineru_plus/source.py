@@ -17,6 +17,11 @@ Each holds when the reading, with up to two words of the parse on each side, is 
 with the same words is not. Spaces, punctuation and markup are not compared (a source renders them differently); the
 hyphen question keeps hyphens. Nothing is fetched: the caller passes the files it has.
 
+  passage(k)    the source's passage (a paragraph, a table cell, a title) aligned with a unit of the parse given as its
+                letters and digits: the one sharing most 6-letter shingles, at least half of the unit's; '' where none.
+                A spelling is asked of the passage, not of the whole source: a source writes a word both ways in
+                different places (11-20, PTA-607: 'biopsies' in one cell, 'biopies' printed in two)
+
   load(paths)   the source documents as one Source: .xml/.nxml (JATS or other XML), .html/.htm/.xhtml, .tex, or a
                 directory or .tar(.gz) of a LaTeX source
 """
@@ -27,6 +32,10 @@ from .check import two_readings as TR
 
 # not printed: the TeX of a formula next to its MathML, scripts and styles, the head of an HTML page
 SKIP = {"tex-math", "annotation", "annotation-xml", "script", "style", "head", "alt-text"}
+# elements that end a passage: paragraphs, titles, captions, list items, table cells, references
+BLOCK = {"p", "title", "article-title", "caption", "label", "li", "list-item", "td", "th", "tr", "ref", "mixed-citation",
+         "element-citation", "sec", "abstract", "div", "h1", "h2", "h3", "h4", "h5", "h6", "figcaption", "dd", "dt",
+         "disp-formula", "fn", "kwd", "contrib", "aff"}
 
 
 class _Text(HTMLParser):
@@ -44,7 +53,7 @@ class _Text(HTMLParser):
     def handle_endtag(self, tag):
         if tag.split(":")[-1] in SKIP and self.skip:
             self.skip -= 1
-        self.out.append(" ")
+        self.out.append("\n\n" if tag.split(":")[-1].lower() in BLOCK else " ")
 
     def handle_startendtag(self, tag, attrs):
         self.out.append(" ")
@@ -103,6 +112,15 @@ def letters(x):
     return re.sub(r"[^\w]", "", unicodedata.normalize("NFKC", html.unescape(x)))
 
 
+def _key(x):
+    """letters and digits, NFKC with ligatures split"""
+    return "".join(d for c in html.unescape(x) for d in unicodedata.normalize("NFKC", c) if d.isalnum())
+
+
+def _shingles(k, n=6):
+    return {k[i:i + n] for i in range(max(1, len(k) - n + 1))}
+
+
 def hyphened(x):
     """letters, digits and hyphens: a soft hyphen is not a hyphen of the word"""
     x = unicodedata.normalize("NFKC", html.unescape(x)).replace("­", "")
@@ -115,6 +133,20 @@ class Source:
         self.same_version = same_version
         self.chars = len(text)
         self._l, self._h = letters(text), hyphened(text)
+        self._p = [k for k in (_key(b) for b in re.split(r"\n\s*\n", text)) if len(k) >= 8]
+        self._inv = {}
+        for i, k in enumerate(self._p):
+            for g in _shingles(k):
+                self._inv.setdefault(g, set()).add(i)
+
+    def passage(self, k):
+        sh = _shingles(k)
+        votes = {}
+        for g in sh:
+            for i in self._inv.get(g, ()):
+                votes[i] = votes.get(i, 0) + 1
+        best = max(votes, key=votes.get, default=None)
+        return self._p[best] if best is not None and votes[best] >= 0.5 * len(sh) else ""
 
     def _says(self, f, S, left, a, b, right):
         fa, fb = f(a), f(b)

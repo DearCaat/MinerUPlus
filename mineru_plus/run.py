@@ -20,9 +20,9 @@ from .readers import mineru as MR, oxr as OX
 from .check import unread as UR, dropped as DR, reflow as RF, table_layer as TL, omissions as OM, two_readings as TR, resolve as RS, coverage as CV, tables as TB, equations as EQ
 from . import layer as LY, sections as SC, backends, config, source as SRC, linenums as LN
 from .check import linebreak as LB, respace as RSP, punct as PU, judge_cache as JC, accents as AC, confirm as CF
-from .check import grade as GR, roi as RI, mathrender as MRN
+from .check import grade as GR, roi as RI, mathrender as MRN, spelling as SP
 
-VERSION = "0.5.15"
+VERSION = "0.5.16"
 DETAILS = re.compile(r"<details>.*?</details>\n*", re.S)   # how MinerU's markdown wraps a figure transcription
 TOKEN = re.compile(r"[A-Za-z0-9]+(?:[.,][0-9]+)*")
 WS = re.compile(r"\s+")
@@ -446,6 +446,15 @@ def _parse(pdf, out, src, source=None):
     checks["accents"] = {**acount, "summary": f"{acount['blocks with accents in formulas']} blocks with accents in their "
                          f"formulas and text-layer words: {acount['raised']} with more accents than their text layer "
                          f"prints, open issues"}
+    # words full.md spells otherwise than the text layer prints them (check/spelling.py): a reader's correction or
+    # misread both readers can share; issues with the page's letters and the source's, edits back where both agree
+    md, spedits, spissues, spcount = SP.apply(pymupdf.open(pdf), md, source)
+    edits += spedits
+    issues += spissues
+    checks["spelling"] = {**spcount, "summary": f"{spcount.get('differences', 0)} words full.md spells otherwise than "
+                          f"the text layer prints them, outside formulas: {spcount.get('written', 0)} written back to the "
+                          f"page's spelling (the layer and the source agree), the rest open issues "
+                          f"({spcount.get('with a suggested edit', 0)} with the edit back as a suggestion)"}
     # text only the primary read: jev on the layer-placed words (check/unread.py)
     # check-box marks drawn as images (marks.py): the 'x' a reader kept for some of them is that mark, written whole in
     # the closing section, not text only the primary read
